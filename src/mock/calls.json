@@ -1,0 +1,108 @@
+[
+  {
+    "callId": "2841",
+    "startedAt": "2026-07-22T10:12:00",
+    "durationSec": 252,
+    "status": "review",
+    "grade": "malicious",
+    "transcript": [
+      { "id": "u1", "speaker": "client", "ts": 8, "text": "야, 저번에 신청한 복지 급여 아직도 처리 안 됐잖아. 대체 일을 어떻게 하는 거야?" },
+      { "id": "u2", "speaker": "agent", "ts": 21, "text": "고객님, 불편을 드려 죄송합니다. 급여 신청 건은 타 기관 소득 자료 연계 확인 절차가 진행 중입니다." },
+      { "id": "u3", "speaker": "client", "ts": 38, "text": "핑계 대지 마. 너희가 일부러 안 해주는 거 아냐? 당장 담당자 바꿔." },
+      { "id": "u4", "speaker": "agent", "ts": 55, "text": "확인해 드리겠습니다. 국세청 소득 자료 연계가 이번 주 내 완료 예정이며, 완료 시 문자로 안내드립니다." },
+      { "id": "u5", "speaker": "client", "ts": 74, "text": "됐고, 안 되면 민원 넣을 거니까 그런 줄 알아. 이름 뭐야?" },
+      { "id": "u6", "speaker": "agent", "ts": 88, "text": "네, 상담사 김OO입니다. 처리 경과는 제가 직접 확인해 안내드리겠습니다." }
+    ],
+    "fields": {
+      "type":     { "value": "자료 확인", "confidence": 0.96, "tier": "high",   "evidence": ["u2", "u4"] },
+      "category": { "value": "범정부",    "confidence": 0.74, "tier": "medium", "evidence": ["u2"] },
+      "grade":    { "value": "악성",      "confidence": 0.91, "tier": "high",   "evidence": ["u3", "u5"] },
+      "summary":  { "value": "복지 급여 신청 건의 타 기관(국세청) 소득 자료 연계 지연에 대한 항의성 문의. 처리 경과 및 완료 예정 시점 안내함.", "confidence": 0.72, "tier": "medium", "evidence": ["u2", "u4"] },
+      "followup": { "value": true,        "confidence": 0.89, "tier": "high",   "evidence": ["u4"] }
+    }
+  },
+  {
+    "callId": "2842",
+    "startedAt": "2026-07-22T10:26:00",
+    "durationSec": 141,
+    "status": "review",
+    "grade": "normal",
+    "transcript": [
+      { "id": "u1", "speaker": "client", "ts": 6, "text": "안녕하세요, 아동수당 지급일이 언제인지 확인하려고 전화했어요." },
+      { "id": "u2", "speaker": "agent", "ts": 15, "text": "네, 아동수당은 매월 25일에 지급되며, 주말인 경우 직전 영업일에 지급됩니다." },
+      { "id": "u3", "speaker": "client", "ts": 31, "text": "아 25일이요. 계좌를 최근에 바꿨는데 그건 반영이 되나요?" },
+      { "id": "u4", "speaker": "agent", "ts": 44, "text": "변경된 계좌는 신청일 기준 다음 지급분부터 반영됩니다. 이번 달 지급은 기존 계좌로 진행될 수 있습니다." },
+      { "id": "u5", "speaker": "client", "ts": 62, "text": "알겠습니다. 친절하게 설명해 주셔서 감사해요." }
+    ],
+    "fields": {
+      "type":     { "value": "제도 안내", "confidence": 0.94, "tier": "high",   "evidence": ["u2"] },
+      "category": { "value": "아동·보육", "confidence": 0.9,  "tier": "high",   "evidence": ["u2", "u4"] },
+      "grade":    { "value": "칭찬",      "confidence": 0.83, "tier": "medium", "evidence": ["u5"] },
+      "summary":  { "value": "아동수당 지급일(매월 25일) 및 계좌 변경 반영 시점 문의. 변경 계좌는 다음 지급분부터 반영됨을 안내.", "confidence": 0.88, "tier": "high", "evidence": ["u2", "u4"] },
+      "followup": { "value": false,       "confidence": 0.92, "tier": "high",   "evidence": [] }
+    }
+  },
+  {
+    "callId": "2843",
+    "startedAt": "2026-07-22T10:41:00",
+    "durationSec": 318,
+    "status": "review",
+    "grade": "normal",
+    "transcript": [
+      { "id": "u1", "speaker": "client", "ts": 9, "text": "제가 기초생활수급 신청을 하려는데 어떤 서류가 필요한지 잘 모르겠어요." },
+      { "id": "u2", "speaker": "agent", "ts": 24, "text": "네, 신분증과 소득·재산 관련 서류가 기본이고, 부양의무자 관련 서류가 추가로 필요할 수 있습니다." },
+      { "id": "u3", "speaker": "client", "ts": 47, "text": "제가 지금 몸이 안 좋아서 주민센터 가기가 어려운데, 방문 신청 같은 것도 되나요?" },
+      { "id": "u4", "speaker": "agent", "ts": 66, "text": "거동이 불편하신 경우 담당 복지 공무원의 방문 상담을 요청하실 수 있습니다. 관할 주민센터로 연계해 드릴까요?" },
+      { "id": "u5", "speaker": "client", "ts": 88, "text": "네, 그렇게 해주시면 정말 감사하죠. 부탁드립니다." },
+      { "id": "u6", "speaker": "agent", "ts": 101, "text": "관할 주민센터에 방문 상담 요청을 접수하겠습니다. 담당자가 2일 이내 연락드릴 예정입니다." }
+    ],
+    "fields": {
+      "type":     { "value": "신청 접수", "confidence": 0.88, "tier": "medium", "evidence": ["u1", "u6"] },
+      "category": { "value": "기초생활보장", "confidence": 0.95, "tier": "high", "evidence": ["u1", "u2"] },
+      "grade":    { "value": "일반",      "confidence": 0.96, "tier": "high",   "evidence": [] },
+      "summary":  { "value": "기초생활수급 신청 서류 문의. 거동 불편으로 방문 상담 요청, 관할 주민센터 연계 접수(2일 내 연락 예정).", "confidence": 0.66, "tier": "medium", "evidence": ["u2", "u4", "u6"] },
+      "followup": { "value": true,        "confidence": 0.87, "tier": "high",   "evidence": ["u6"] }
+    }
+  },
+  {
+    "callId": "2844",
+    "startedAt": "2026-07-22T10:58:00",
+    "durationSec": 96,
+    "status": "review",
+    "grade": "normal",
+    "transcript": [
+      { "id": "u1", "speaker": "client", "ts": 5, "text": "그... 저기 지원금 관련해서 뭐 좀 물어보려고 하는데요." },
+      { "id": "u2", "speaker": "agent", "ts": 14, "text": "네 고객님, 어떤 지원금에 대해 안내해 드릴까요?" },
+      { "id": "u3", "speaker": "client", "ts": 22, "text": "그게... 뭐더라, 저번에 뉴스에서 본 건데 이름이 기억이 안 나네요. 청년들 주는 거요." },
+      { "id": "u4", "speaker": "agent", "ts": 36, "text": "청년 대상 지원 제도가 여러 가지가 있는데, 혹시 취업·주거·자산형성 중 어떤 쪽이신지 알 수 있을까요?" },
+      { "id": "u5", "speaker": "client", "ts": 51, "text": "음... 정확히는 잘 모르겠어요. 그냥 돈 모으는 거였던 것 같기도 하고." }
+    ],
+    "fields": {
+      "type":     { "value": "제도 안내", "confidence": 0.68, "tier": "medium", "evidence": ["u2", "u4"] },
+      "category": { "value": "",          "confidence": 0.41, "tier": "low",    "evidence": [] },
+      "grade":    { "value": "일반",      "confidence": 0.9,  "tier": "high",   "evidence": [] },
+      "summary":  { "value": "", "confidence": 0.38, "tier": "low", "evidence": ["u3", "u5"] },
+      "followup": { "value": false,       "confidence": 0.55, "tier": "low",    "evidence": [] }
+    }
+  },
+  {
+    "callId": "2845",
+    "startedAt": "2026-07-22T11:15:00",
+    "durationSec": 174,
+    "status": "review",
+    "grade": "normal",
+    "transcript": [
+      { "id": "u1", "speaker": "client", "ts": 7, "text": "에너지 바우처 신청했는데 잔액이 어떻게 되는지 조회가 안 돼서요." },
+      { "id": "u2", "speaker": "agent", "ts": 19, "text": "네, 에너지 바우처 잔액은 국민행복카드 포털이나 고객센터에서 조회 가능합니다. 본인 확인 후 안내드리겠습니다." },
+      { "id": "u3", "speaker": "client", "ts": 38, "text": "네 확인 부탁드려요. 이번 겨울에 다 쓸 수 있는 거 맞죠?" },
+      { "id": "u4", "speaker": "agent", "ts": 52, "text": "동절기 바우처는 사용 기한이 정해져 있으며, 기한 내 미사용분은 소멸됩니다. 조회된 잔액과 기한 함께 안내드리겠습니다." }
+    ],
+    "fields": {
+      "type":     { "value": "잔액 조회", "confidence": 0.93, "tier": "high",   "evidence": ["u1", "u2"] },
+      "category": { "value": "에너지복지", "confidence": 0.86, "tier": "medium", "evidence": ["u1"] },
+      "grade":    { "value": "일반",      "confidence": 0.97, "tier": "high",   "evidence": [] },
+      "summary":  { "value": "에너지 바우처 잔액 조회 및 동절기 사용 기한 문의. 본인 확인 후 잔액·기한 안내 예정, 미사용분 소멸 고지.", "confidence": 0.79, "tier": "medium", "evidence": ["u2", "u4"] },
+      "followup": { "value": false,       "confidence": 0.9,  "tier": "high",   "evidence": [] }
+    }
+  }
+]
