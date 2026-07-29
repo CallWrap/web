@@ -64,6 +64,9 @@ export function AdminPage() {
 
   return (
     <div className="content">
+      <div className="section-head">
+        <h2>모니터링 대시보드</h2>
+      </div>
       <div className="metric-row four">
         <div className="metric">
           <div className="label">오늘 처리 건수</div>
