@@ -18,6 +18,17 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
   const restKeys = FIELD_ORDER.filter((k) => fields[k].tier !== 'high');
 
   const [bulkApproved, setBulkApproved] = useState(false);
+  // 신뢰도로 결정되는 것은 "기본 표시 상태"뿐 — 수정 가능 여부는 항상 열려 있다.
+  const [openHigh, setOpenHigh] = useState<Set<FieldKey>>(new Set());
+
+  function toggleOpen(key: FieldKey) {
+    setOpenHigh((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function renderInput(key: FieldKey) {
     const f = fields[key];
@@ -55,7 +66,7 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
     );
   }
 
-  function renderCard(key: FieldKey) {
+  function renderCard(key: FieldKey, onCollapse?: () => void) {
     const f = fields[key];
     const edited = editedKeys.includes(key);
     return (
@@ -67,6 +78,14 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
           </span>
           <span className="conf">{Math.round(f.confidence * 100)}%</span>
           {edited && <span className="edited-tag">수정됨</span>}
+          {onCollapse && (
+            <>
+              <span className="spacer" />
+              <button className="toggle" onClick={onCollapse}>
+                접기 ▴
+              </button>
+            </>
+          )}
         </div>
         <div className="fbody">
           {f.tier === 'low' && (
@@ -92,6 +111,44 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
     );
   }
 
+  function renderQuietRow(key: FieldKey) {
+    const edited = editedKeys.includes(key);
+    return (
+      <div key={key} className={`triage-quiet-row ${bulkApproved ? 'done' : ''}`}>
+        <span className="ck">{bulkApproved ? '✓' : ''}</span>
+        <span className="k">{fieldLabel[key]}</span>
+        {key === 'followup' ? (
+          <label className="quiet-check">
+            <input
+              type="checkbox"
+              checked={Boolean(values[key])}
+              onChange={(e) => onChange(key, e.target.checked)}
+            />
+            필요
+          </label>
+        ) : key === 'summary' ? (
+          <textarea
+            className="quiet-textarea"
+            rows={2}
+            value={String(values[key])}
+            onChange={(e) => onChange(key, e.target.value)}
+          />
+        ) : (
+          <input
+            className="quiet-input"
+            type="text"
+            value={String(values[key])}
+            onChange={(e) => onChange(key, e.target.value)}
+          />
+        )}
+        {edited && <span className="edited-tag">수정됨</span>}
+        <button className="quiet-toggle" onClick={() => toggleOpen(key)}>
+          근거 ▾
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="form-list">
       {highKeys.length > 0 &&
@@ -112,40 +169,9 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
 
       {highKeys.length > 0 && (
         <div className="triage-quiet">
-          {highKeys.map((k) => {
-            const edited = editedKeys.includes(k);
-            return (
-              <div key={k} className={`triage-quiet-row ${bulkApproved ? 'done' : ''}`}>
-                <span className="ck">{bulkApproved ? '✓' : ''}</span>
-                <span className="k">{fieldLabel[k]}</span>
-                {k === 'followup' ? (
-                  <label className="quiet-check">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(values[k])}
-                      onChange={(e) => onChange(k, e.target.checked)}
-                    />
-                    필요
-                  </label>
-                ) : k === 'summary' ? (
-                  <textarea
-                    className="quiet-textarea"
-                    rows={2}
-                    value={String(values[k])}
-                    onChange={(e) => onChange(k, e.target.value)}
-                  />
-                ) : (
-                  <input
-                    className="quiet-input"
-                    type="text"
-                    value={String(values[k])}
-                    onChange={(e) => onChange(k, e.target.value)}
-                  />
-                )}
-                {edited && <span className="edited-tag">수정됨</span>}
-              </div>
-            );
-          })}
+          {highKeys.map((k) =>
+            openHigh.has(k) ? renderCard(k, () => toggleOpen(k)) : renderQuietRow(k),
+          )}
         </div>
       )}
 

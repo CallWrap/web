@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { useCallStore } from '../store/callStore';
-import { QueueRow } from '../components/QueueRow';
-import { SealIcon } from '../components/icons';
+import { useEffect } from "react";
+import { useCallStore } from "../store/callStore";
+import { QueueRow } from "../components/QueueRow";
+import { SealIcon } from "../components/icons";
 
 export function QueuePage() {
   const { calls, loaded, loadQueue } = useCallStore();
@@ -12,11 +12,14 @@ export function QueuePage() {
 
   // 악성콜(감정노동 보호 대상)을 맨 위로 — 상담원이 대기열을 훑을 때 가장 먼저 눈에 들어와야 함
   const pending = calls
-    .filter((c) => c.status === 'analyzing' || c.status === 'review')
-    .sort((a, b) => Number(b.grade === 'malicious') - Number(a.grade === 'malicious'));
-  const analyzingCount = calls.filter((c) => c.status === 'analyzing').length;
-  const confirmedCount = calls.filter((c) => c.status === 'confirmed').length;
-  const followupCount = calls.filter((c) => c.status === 'followup').length;
+    .filter((c) => c.status === "analyzing" || c.status === "review")
+    .sort(
+      (a, b) =>
+        Number(b.grade === "malicious") - Number(a.grade === "malicious"),
+    );
+  const analyzingCount = calls.filter((c) => c.status === "analyzing").length;
+  const confirmedCount = calls.filter((c) => c.status === "confirmed").length;
+  const followupCount = calls.filter((c) => c.status === "followup").length;
 
   return (
     <div className="content">
@@ -35,7 +38,9 @@ export function QueuePage() {
             {pending.length}
             <small> 건</small>
           </div>
-          <div className="sub">{analyzingCount > 0 ? `분석 중 ${analyzingCount}건` : '실시간 반영'}</div>
+          <div className="sub">
+            {analyzingCount > 0 ? `분석 중 ${analyzingCount}건` : "실시간 반영"}
+          </div>
         </div>
         <div className="metric">
           <div className="label">후속처리 필요</div>
@@ -50,13 +55,14 @@ export function QueuePage() {
       <div className="info-note">
         <span>ℹ</span>
         <span>
-          상담이 종료되면 AI가 자동으로 후처리 폼을 채웁니다. <strong>분석 중 → 검토 대기</strong>로
-          바뀐 콜을 클릭해 검토·승인하세요.
+          상담이 종료되면 AI가 자동으로 후처리 폼을 채웁니다.{" "}
+          <strong>분석 중 → 검토 대기</strong>로 바뀐 콜을 클릭해
+          검토·승인하세요.
         </span>
       </div>
 
       <div className="section-head">
-        <h2>내 검토 대기열</h2>
+        <h2>검토 대기열</h2>
         <span className="count">{pending.length}건</span>
       </div>
 
@@ -67,7 +73,9 @@ export function QueuePage() {
         </div>
       ) : pending.length === 0 ? (
         <div className="empty">
-          <div className="big ok"><SealIcon /></div>
+          <div className="big ok">
+            <SealIcon />
+          </div>
           <h3>모든 상담이 처리되었습니다</h3>
           <p>새 상담이 종료되면 이곳에 검토 대기 콜이 표시됩니다.</p>
         </div>

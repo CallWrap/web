@@ -5,7 +5,6 @@ import { useCallStore } from '../store/callStore';
 import { useToastStore } from '../store/toastStore';
 import { TranscriptPanel } from '../components/TranscriptPanel';
 import { TriageForm } from '../components/TriageForm';
-import { WellbeingModal } from '../components/WellbeingModal';
 import { GradeBadge } from '../components/StatusBadge';
 import { fmtDuration, fmtTime } from '../lib/format';
 
@@ -24,18 +23,19 @@ export function ReviewPage() {
   const [call, setCall] = useState<Call | undefined>();
   const [values, setValues] = useState<Values | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [showWellbeing, setShowWellbeing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [stamped, setStamped] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   const enterTime = useRef<number>(Date.now());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const uttRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // 콜 로드
+  // 콜 로드 — 자동으로 다음 콜로 넘어갈 때도 같은 라우트 컴포넌트가 재사용되므로
+  // 검토 관련 상태를 매번 명시적으로 리셋한다.
   useEffect(() => {
     let alive = true;
+    setSaving(false);
+    setFlashId(null);
     fetchCall(callId).then((c) => {
       if (!alive) return;
       setCall(c);
@@ -43,7 +43,6 @@ export function ReviewPage() {
         const v = {} as Values;
         FIELD_ORDER.forEach((k) => (v[k] = c.fields[k].value));
         setValues(v);
-        if (c.grade === 'malicious') setShowWellbeing(true);
         enterTime.current = Date.now();
       }
     });
@@ -116,24 +115,21 @@ export function ReviewPage() {
       reviewSec,
       followupNeeded,
     });
-    setStamped(true);
     const savedCallId = call.callId;
-    setTimeout(() => {
-      const remaining = useCallStore.getState().calls.filter(
-        (c) => c.status === 'review' && c.callId !== savedCallId,
+    const remaining = useCallStore.getState().calls.filter(
+      (c) => c.status === 'review' && c.callId !== savedCallId,
+    );
+    if (remaining.length > 0) {
+      pushToast(`콜 #${savedCallId} 저장됨 · 다음 콜로 이동`);
+      navigate(`/review/${remaining[0].callId}`);
+    } else {
+      pushToast(
+        followupNeeded
+          ? `콜 #${savedCallId} 저장됨 · 후속처리 탭으로 이동`
+          : `콜 #${savedCallId} 저장됨 · 검토 완료`,
       );
-      if (remaining.length > 0) {
-        pushToast(`콜 #${savedCallId} 저장됨 · 다음 콜로 이동`);
-        navigate(`/review/${remaining[0].callId}`);
-      } else {
-        pushToast(
-          followupNeeded
-            ? `콜 #${savedCallId} 저장됨 · 후속처리 탭으로 이동`
-            : `콜 #${savedCallId} 저장됨 · 검토 완료`,
-        );
-        navigate('/queue');
-      }
-    }, 700);
+      navigate('/queue');
+    }
   }
 
   const mm = Math.floor(elapsed / 60);
@@ -141,16 +137,6 @@ export function ReviewPage() {
 
   return (
     <>
-      {showWellbeing && (
-        <WellbeingModal callId={call.callId} onClose={() => setShowWellbeing(false)} />
-      )}
-
-      {stamped && (
-        <div className="stamp-overlay" aria-hidden>
-          <div className="stamp-mark">검토완료</div>
-        </div>
-      )}
-
       <div className="zen-header">
         <div className="zen-left">
           <button className="btn ghost sm" onClick={() => navigate('/queue')}>

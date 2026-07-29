@@ -13,35 +13,6 @@ interface CallState {
   toggleFollowupAction: (callId: string, actionId: string) => void;
 }
 
-/** 데모용: 대기열 진입 시 일부 콜을 analyzing으로 두고 setTimeout으로 review 전이 */
-function simulateAnalysis(
-  calls: Call[],
-  set: (fn: (s: CallState) => Partial<CallState>) => void,
-): Call[] {
-  // 악성콜(2841)을 '분석 중'으로 시작 → 발표 시 상태 전이를 눈으로 보여줌
-  const analyzingIds = ['2841'];
-  const staged = calls.map((c) =>
-    analyzingIds.includes(c.callId) ? { ...c, status: 'analyzing' as const } : c,
-  );
-
-  analyzingIds.forEach((id, i) => {
-    setTimeout(
-      () => {
-        set((s) => ({
-          calls: s.calls.map((c) =>
-            c.callId === id && c.status === 'analyzing'
-              ? { ...c, status: 'review' as const }
-              : c,
-          ),
-        }));
-      },
-      3500 + i * 1500,
-    );
-  });
-
-  return staged;
-}
-
 export const useCallStore = create<CallState>((set, get) => ({
   calls: [],
   loaded: false,
@@ -51,8 +22,7 @@ export const useCallStore = create<CallState>((set, get) => ({
     // 이미 로드됐다면 상태 유지 (검토 후 돌아왔을 때 대기열이 리셋되지 않도록)
     if (get().loaded) return;
     const queue = await getQueue();
-    const staged = simulateAnalysis(queue, set);
-    set(() => ({ calls: staged, loaded: true }));
+    set(() => ({ calls: queue, loaded: true }));
   },
 
   fetchCall: async (id) => {

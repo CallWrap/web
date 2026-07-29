@@ -348,6 +348,8 @@ a { color: inherit; text-decoration: none; }
 .tier-badge.medium { background: #fff; color: var(--medium); border: 1px solid var(--medium-bd); }
 .tier-badge.low    { background: #fff; color: var(--low);    border: 1px dashed var(--low-bd); }
 .field .fhead .conf { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.field .fhead .spacer { flex: 1; }
+.field .fhead .toggle { font-size: 12px; color: var(--text-2); background: none; border: none; padding: 4px; }
 
 .field .fbody { padding: 0 13px 13px; }
 
@@ -420,7 +422,12 @@ a { color: inherit; text-decoration: none; }
 .triage-bulk .txt { font-size: 12.5px; font-weight: 700; color: var(--high); flex: 1; }
 .triage-bulk.done .txt { color: var(--text-2); }
 
-.triage-quiet { display: flex; flex-direction: column; }
+.triage-quiet { display: flex; flex-direction: column; gap: 6px; }
+.triage-quiet-row .quiet-toggle {
+  flex-shrink: 0; font-size: 11px; color: var(--text-3); font-weight: 600;
+  background: none; border: none; padding: 3px 4px;
+}
+.triage-quiet-row .quiet-toggle:hover { color: var(--text-2); }
 .triage-quiet-row { display: flex; align-items: center; gap: 9px; padding: 5px 3px; font-size: 12.5px; color: var(--text-3); }
 .triage-quiet-row.done { color: var(--text-2); }
 .triage-quiet-row .ck { width: 14px; flex-shrink: 0; color: var(--high); font-weight: 700; }
@@ -450,83 +457,6 @@ a { color: inherit; text-decoration: none; }
 .triage-divider .line { flex: 1; height: 1px; background: var(--medium-bd); }
 
 .triage-rest-list { display: flex; flex-direction: column; gap: 12px; }
-
-/* ── 결재 스탬프 — 저장 시 한 번, 화면 전체에 도장을 찍는 유일한 연출 ── */
-.stamp-overlay {
-  position: fixed; inset: 0; z-index: 70;
-  display: grid; place-items: center;
-  pointer-events: none;
-  background: rgba(28, 30, 42, 0);
-  animation: stampDim 1.1s ease forwards;
-}
-@keyframes stampDim {
-  0% { background: rgba(28, 30, 42, 0); }
-  15% { background: rgba(28, 30, 42, 0.18); }
-  75% { background: rgba(28, 30, 42, 0.18); }
-  100% { background: rgba(28, 30, 42, 0); }
-}
-.stamp-mark {
-  width: 148px; height: 148px; border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.85);
-  display: grid; place-items: center;
-  color: #fff;
-  font-family: var(--font);
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: 0.1em;
-  background: radial-gradient(circle at 35% 30%, #e0304f, var(--danger) 70%);
-  box-shadow: 0 14px 30px -8px rgba(200, 16, 46, 0.55), inset 0 0 0 6px rgba(255, 255, 255, 0.12);
-  transform: scale(2.4) rotate(-14deg);
-  opacity: 0;
-  animation: stampHit 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
-}
-.stamp-mark::before {
-  content: '';
-  position: absolute;
-  width: 122px; height: 122px; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-@keyframes stampHit {
-  0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
-  35% { transform: scale(0.94) rotate(-14deg); opacity: 1; }
-  46% { transform: scale(1.04) rotate(-14deg); }
-  55% { transform: scale(1) rotate(-14deg); opacity: 1; }
-  85% { transform: scale(1) rotate(-14deg); opacity: 1; }
-  100% { transform: scale(1) rotate(-14deg); opacity: 0; }
-}
-
-/* ── Modal ── */
-.modal-scrim {
-  position: fixed; inset: 0; background: rgba(28, 30, 42, 0.45);
-  display: grid; place-items: center; z-index: 50; padding: 20px;
-  animation: fade 0.2s ease;
-}
-@keyframes fade { from { opacity: 0; } }
-.modal {
-  background: var(--surface); border-radius: 14px;
-  max-width: 440px; width: 100%; box-shadow: var(--shadow-lg);
-  overflow: hidden; animation: pop 0.2s ease;
-}
-@keyframes pop { from { transform: translateY(8px) scale(0.98); opacity: 0; } }
-.modal .m-top { background: var(--surface-2); padding: 26px 24px 20px; text-align: center; border-bottom: 1px solid var(--border); }
-
-/* 숨쉬기 신호 — '호흡을 고르세요' 문구를 실제로 따라 할 수 있는 유일한 모션 */
-.breathe {
-  width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%;
-  background: var(--brand-bg); border: 1.5px solid var(--high-bd);
-  animation: breathe 4s ease-in-out infinite;
-}
-@keyframes breathe {
-  0%, 100% { transform: scale(0.82); background: var(--brand-bg); }
-  50% { transform: scale(1.12); background: var(--high-bg); }
-}
-.modal .m-top h3 { margin: 0 0 4px; font-family: var(--font-serif); font-weight: 700; font-size: 18px; color: var(--text); }
-.modal .m-top p { margin: 0; font-size: 13px; color: var(--text-2); }
-.modal .m-body { padding: 18px 24px; }
-.modal .m-body ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
-.modal .m-body li { margin: 5px 0; }
-.modal .m-foot { padding: 0 24px 20px; display: flex; gap: 10px; }
-.modal .m-foot .btn { flex: 1; }
 
 /* ── Followups ── */
 .followup-card {
