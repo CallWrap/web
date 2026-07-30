@@ -5,6 +5,7 @@ import type { Call, CallFields, SaveCallPayload } from '../api/types';
 interface CallState {
   calls: Call[];
   loaded: boolean;
+  loadError: string | null;
   totalReviewSec: number; // 저장된 콜들의 누적 검토 시간 (대시보드 평균 계산용)
 
   loadQueue: () => Promise<void>;
@@ -16,19 +17,29 @@ interface CallState {
 export const useCallStore = create<CallState>((set, get) => ({
   calls: [],
   loaded: false,
+  loadError: null,
   totalReviewSec: 0,
 
   loadQueue: async () => {
     // 이미 로드됐다면 상태 유지 (검토 후 돌아왔을 때 대기열이 리셋되지 않도록)
     if (get().loaded) return;
-    const queue = await getQueue();
-    set(() => ({ calls: queue, loaded: true }));
+    set({ loadError: null });
+    try {
+      const queue = await getQueue();
+      set({ calls: queue, loaded: true });
+    } catch (err) {
+      set({ loadError: err instanceof Error ? err.message : '대기열을 불러오지 못했습니다.' });
+    }
   },
 
   fetchCall: async (id) => {
     const local = get().calls.find((c) => c.callId === id);
     if (local) return local;
-    return getCall(id);
+    try {
+      return await getCall(id);
+    } catch {
+      return undefined;
+    }
   },
 
   approveCall: async (id, payload) => {

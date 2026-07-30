@@ -22,7 +22,7 @@ export const statusLabel: Record<CallStatus, string> = {
 
 export const gradeLabel: Record<CallGrade, string> = {
   normal: '일반',
-  praise: '칭찬',
+  praise: '칭찬콜',
   malicious: '악성콜',
 };
 

@@ -4,7 +4,7 @@ import { QueueRow } from "../components/QueueRow";
 import { SealIcon } from "../components/icons";
 
 export function QueuePage() {
-  const { calls, loaded, loadQueue } = useCallStore();
+  const { calls, loaded, loadError, loadQueue } = useCallStore();
 
   useEffect(() => {
     loadQueue();
@@ -66,10 +66,26 @@ export function QueuePage() {
         <span className="count">{pending.length}건</span>
       </div>
 
-      {!loaded ? (
-        <div className="empty">
-          <div className="spinner" style={{ width: 20, height: 20 }} />
-          <p>대기열을 불러오는 중…</p>
+      {loadError ? (
+        <div className="empty error">
+          <h3>대기열을 불러오지 못했습니다</h3>
+          <p>{loadError}</p>
+          <button className="btn primary sm" onClick={() => loadQueue()}>
+            다시 시도
+          </button>
+        </div>
+      ) : !loaded ? (
+        <div className="queue" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="qrow skeleton-row">
+              <div className="skeleton-block" style={{ height: 34 }} />
+              <div>
+                <div className="skeleton-block" style={{ height: 16, width: '40%', marginBottom: 8 }} />
+                <div className="skeleton-block" style={{ height: 12, width: '65%' }} />
+              </div>
+              <div className="skeleton-block" style={{ height: 30, width: 80 }} />
+            </div>
+          ))}
         </div>
       ) : pending.length === 0 ? (
         <div className="empty">

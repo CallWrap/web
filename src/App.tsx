@@ -6,7 +6,7 @@ import { FollowupPage } from './pages/FollowupPage';
 import { AdminPage } from './pages/AdminPage';
 import { ToastHost } from './store/toastStore';
 import { useCallStore } from './store/callStore';
-import { ChartIcon, LoopIcon, TrayIcon } from './components/icons';
+import { ADMIN_TABS } from './lib/adminTabs';
 
 function Topbar() {
   return (
@@ -27,22 +27,36 @@ function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <NavLink to="/queue" className={nav} title="검토 대기열" aria-label="검토 대기열">
-        <TrayIcon size={19} />
+      <NavLink to="/queue" className={nav} aria-label="검토 대기열">
+        검토 대기열
         {pending > 0 && (
           <span className={`icon-badge ${analyzing ? 'alert' : ''}`}>{pending}</span>
         )}
       </NavLink>
-      <NavLink to="/followups" className={nav} title="후속처리" aria-label="후속처리">
-        <LoopIcon size={19} />
+      <NavLink to="/followups" className={nav} aria-label="후속처리">
+        후속처리
         {followups > 0 && <span className="icon-badge">{followups}</span>}
       </NavLink>
 
       <div className="nav-divider" />
 
-      <NavLink to="/admin" className={nav} title="모니터링 대시보드" aria-label="모니터링 대시보드">
-        <ChartIcon size={19} />
+      <NavLink to="/admin" end className={nav} aria-label="모니터링 대시보드">
+        모니터링
       </NavLink>
+
+      <div className="nav-sub">
+        {ADMIN_TABS.filter((t) => t.key !== 'overview').map((t) => (
+          <NavLink
+            key={t.key}
+            to={`/admin/${t.key}`}
+            className={({ isActive }) => `nav-subitem ${isActive ? 'active' : ''}`}
+            title={t.label}
+            aria-label={t.label}
+          >
+            {t.short}
+          </NavLink>
+        ))}
+      </div>
     </aside>
   );
 }
@@ -66,6 +80,7 @@ export default function App() {
           <Route path="/review/:callId" element={<ReviewPage />} />
           <Route path="/followups" element={<FollowupPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/:tab" element={<AdminPage />} />
         </Routes>
       </div>
       <ToastHost />
