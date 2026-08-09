@@ -1,21 +1,22 @@
 // ─────────────────────────────────────────────────────────────
-// API 계약 (Contract)
-// 이 파일의 타입 = 백엔드 응답 스키마. 실제 API 전환 시에도 이 형태를 유지한다.
+// web 내부에서 쓰는 UI 타입. 실제 백엔드 응답(backendTypes.ts)과는
+// adapt.ts가 변환해서 이어준다 — 이 파일 자체는 더 이상 "백엔드 응답 스키마"가 아니다.
 // ─────────────────────────────────────────────────────────────
 
-/** 콜 처리 상태 머신 */
+/** 콜 처리 상태 머신. failed는 Spring CallStatus.FAILED에 대응 (mock 단계엔 없던 상태). */
 export type CallStatus =
   | 'transcribing'
   | 'quality_check'
   | 'analyzing'
   | 'review'
   | 'confirmed'
-  | 'followup';
+  | 'followup'
+  | 'failed';
 
 /** 상담 등급 (감정노동/악성콜 분류) */
 export type CallGrade = 'normal' | 'praise' | 'malicious';
 
-/** AI 신뢰도 tier. confidence에서 계산 가능하나 캘리브레이션은 백엔드 책임이므로 응답에 포함. */
+/** AI 신뢰도 tier. confidence에서 프론트가 파생시킨다 (deriveTier). */
 export type Tier = 'high' | 'medium' | 'low';
 
 export type SpeakerRole = 'client' | 'agent';
@@ -47,18 +48,26 @@ export interface CallFields {
 
 export type FieldKey = keyof CallFields;
 
-/** 콜 1건 (= /calls/:id 응답) */
+/**
+ * 콜 1건. Spring의 목록 API(GET /api/reviews)는 상태·시각만 주고 전사·필드·등급은 안 준다
+ * (대용량 JSONB를 목록에서 안 실어보내려는 설계) — 그래서 목록 화면에서 만든 Call은
+ * fields/grade/transcript가 전부 placeholder다. 실제 값은 상세 조회(getCall)에서만 채워진다.
+ * isSummary로 "이 객체가 placeholder인지"를 구분한다.
+ */
 export interface Call {
   callId: string;
-  startedAt: string; // ISO
-  durationSec: number;
+  startedAt: string | null; // 백엔드가 아직 call_started_at을 안 줌 — null 가능
+  durationSec: number | null; // 백엔드가 아직 안 줌 — null 가능
   status: CallStatus;
   grade: CallGrade;
-  transcript: Utterance[];
+  transcript: Utterance[]; // 백엔드 계약에 전사 필드가 아직 없어 항상 빈 배열
   fields: CallFields;
-  editCount?: number; // 상담사 수정 건수 (재학습 데이터 축적 지표)
-  reviewSec?: number; // 검토 소요 시간(초)
+  confirmedAt?: string | null;
+  editCount?: number; // 상담사 수정 건수 (재학습 데이터 축적 지표) — editedFields.length로 파생
+  reviewSec?: number; // 검토 소요 시간(초) — 프론트에서만 재고, 백엔드에 저장 안 됨
   followupActions?: FollowupAction[];
+  /** true면 목록 API에서 온 placeholder — fields/grade/transcript를 신뢰하지 말 것 */
+  isSummary?: boolean;
 }
 
 export interface FollowupAction {
@@ -70,7 +79,7 @@ export interface FollowupAction {
 /** saveCall 페이로드 */
 export interface SaveCallPayload {
   fields: CallFields;
-  editCount: number;
+  editedFields: FieldKey[];
   reviewSec: number;
   followupNeeded: boolean;
 }
