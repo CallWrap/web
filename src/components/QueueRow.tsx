@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import type { Call, Tier } from '../api/types';
-import { fmtDuration, fmtTime } from '../lib/format';
+import { fmtTime } from '../lib/format';
 import { GradeBadge, StatusBadge } from './StatusBadge';
 
-/** 확신(high) 항목 개수 + 5개 항목의 신뢰도 지문 */
+/** 확신(high) 항목 개수 + 5개 항목의 신뢰도 지문. 목록 API는 필드를 안 줘서 placeholder(call.isSummary)면 못 그린다. */
 function confidenceSummary(call: Call): { high: number; total: number; tiers: Tier[] } {
   const fields = Object.values(call.fields);
   return {
@@ -35,15 +35,18 @@ export function QueueRow({ call }: { call: Call }) {
           <StatusBadge status={call.status} />
           <GradeBadge grade={call.grade} />
         </div>
-        <div className="meta">
-          <span>통화 {fmtDuration(call.durationSec)}</span>
-          {isMalicious && <span className="warn">감정노동 보호 대상</span>}
-        </div>
+        {isMalicious && (
+          <div className="meta">
+            <span className="warn">감정노동 보호 대상</span>
+          </div>
+        )}
       </div>
 
       <div className="right">
         {analyzing ? (
           <span className="ai-summary">AI가 후처리 폼을 채우는 중…</span>
+        ) : call.isSummary ? (
+          <span className="ai-summary">클릭해서 AI 판정 확인</span>
         ) : (
           <span className="ai-summary">
             <span>

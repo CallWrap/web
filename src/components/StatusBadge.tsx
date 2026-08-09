@@ -9,7 +9,9 @@ export function StatusBadge({ status }: { status: CallStatus }) {
         ? 'badge-review'
         : status === 'followup'
           ? 'badge-followup'
-          : 'badge-confirmed';
+          : status === 'failed'
+            ? 'badge-failed'
+            : 'badge-confirmed';
   return (
     <span className={`badge-pill ${cls}`}>
       {status === 'analyzing' ? <span className="spinner" /> : <span className="dot" />}

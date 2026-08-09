@@ -1,12 +1,14 @@
 import type { CallGrade, CallStatus, Tier } from '../api/types';
 
-export function fmtDuration(sec: number): string {
+export function fmtDuration(sec: number | null | undefined): string {
+  if (sec == null) return '—';
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}분 ${s.toString().padStart(2, '0')}초`;
 }
 
-export function fmtTime(iso: string): string {
+export function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
   const d = new Date(iso);
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
@@ -18,6 +20,7 @@ export const statusLabel: Record<CallStatus, string> = {
   review: '검토 대기',
   confirmed: '완료',
   followup: '후속필요',
+  failed: '처리 실패',
 };
 
 export const gradeLabel: Record<CallGrade, string> = {
