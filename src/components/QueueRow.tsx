@@ -45,8 +45,10 @@ export function QueueRow({ call }: { call: Call }) {
       <div className="right">
         {analyzing ? (
           <span className="ai-summary">AI가 후처리 폼을 채우는 중…</span>
-        ) : call.isSummary ? (
-          <span className="ai-summary">클릭해서 AI 판정 확인</span>
+        ) : call.isSummary && call.confidenceSummary ? (
+          <span className="ai-summary">
+            AI 확신 <strong>{call.confidenceSummary.high}/{call.confidenceSummary.total}</strong> 항목
+          </span>
         ) : (
           <span className="ai-summary">
             <span>

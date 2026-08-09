@@ -20,11 +20,19 @@ export interface BackendUtterance {
   end: number;
 }
 
-/** GET /api/reviews 의 items[] 원소 — 목록은 상태/시각만 준다 (전사·필드 전체는 상세 전용) */
+/**
+ * GET /api/reviews 의 items[] 원소. 전사·필드 전체(type/category/summary 등)는 여전히 안 준다
+ * (상세 전용) — 등급/후속필요/신뢰도 집계/통화시작시각까지는 목록에서 받는다.
+ */
 export interface BackendReviewSummary {
   reviewId: string;
   status: string;
   retryCount: number;
+  grade: BackendJudgment<unknown> | null;
+  needsFollowup: BackendJudgment<unknown> | null;
+  highConfidenceFieldCount: number;
+  totalFieldCount: number;
+  callStartedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +48,9 @@ export interface BackendReviewListResponse {
 export interface BackendReviewDetail {
   reviewId: string;
   status: string;
+  callStartedAt: string | null;
+  callDurationSec: number | null;
+  createdAt: string;
   classification: {
     type: BackendJudgment<unknown> | null;
     category: BackendJudgment<unknown> | null;

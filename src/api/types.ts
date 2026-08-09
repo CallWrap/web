@@ -66,8 +66,10 @@ export interface Call {
   editCount?: number; // 상담사 수정 건수 (재학습 데이터 축적 지표) — editedFields.length로 파생
   reviewSec?: number; // 검토 소요 시간(초) — 프론트에서만 재고, 백엔드에 저장 안 됨
   followupActions?: FollowupAction[];
-  /** true면 목록 API에서 온 placeholder — fields/grade/transcript를 신뢰하지 말 것 */
+  /** true면 목록 API에서 온 placeholder — fields/transcript는 여전히 비어있음 (grade/후속필요는 이제 실값) */
   isSummary?: boolean;
+  /** 목록에서 온 AI 확신 집계 (fields 전체 없이도 "N/M 항목 확신" 표시용) */
+  confidenceSummary?: { high: number; total: number };
 }
 
 export interface FollowupAction {

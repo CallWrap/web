@@ -112,19 +112,21 @@ export function defaultFollowupActions(callId: string) {
 }
 
 /**
- * 목록 API 항목 → Call placeholder. fields/grade/transcript는 진짜 값이 아니라 빈 값이다
- * (목록 API가 안 주므로) — isSummary: true로 표시해 화면단에서 실수로 신뢰하지 않게 한다.
+ * 목록 API 항목 → Call. 등급/후속필요/신뢰도 집계/통화시작시각은 이제 실값이지만,
+ * type/category/summary 등 필드 전체와 전사는 여전히 상세 조회에서만 받는다(isSummary: true).
  */
 export function toCallFromSummary(item: BackendReviewSummary): Call {
+  const needsFollowup = Boolean(item.needsFollowup?.value);
   return {
     callId: item.reviewId,
-    startedAt: null,
-    durationSec: null,
-    status: mapCallStatus(item.status),
-    grade: 'normal', // TODO(백엔드 갭): 목록 API가 등급을 안 줘서 항상 normal로 고정됨
+    startedAt: item.callStartedAt,
+    durationSec: null, // TODO(백엔드 갭): 목록 API엔 call_duration_sec이 없음 — 상세에서만 나옴
+    status: mapCallStatus(item.status, needsFollowup),
+    grade: mapGrade(item.grade),
     transcript: [],
     fields: EMPTY_FIELDS,
     isSummary: true,
+    confidenceSummary: { high: item.highConfidenceFieldCount, total: item.totalFieldCount },
   };
 }
 
@@ -150,8 +152,8 @@ export function toCall(detail: BackendReviewDetail): Call {
 
   return {
     callId: detail.reviewId,
-    startedAt: null, // TODO(백엔드 갭): call_started_at 노출되면 채우기
-    durationSec: null, // TODO(백엔드 갭): call_duration_sec 노출되면 채우기
+    startedAt: detail.callStartedAt,
+    durationSec: detail.callDurationSec,
     status: mapCallStatus(detail.status, needsFollowup),
     grade: mapGrade(detail.classification?.grade),
     transcript: [], // TODO(백엔드 갭): ResultMessage에 transcript 실리면 매핑 (toUtterance 사용)
