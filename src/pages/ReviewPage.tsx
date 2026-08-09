@@ -156,7 +156,7 @@ export function ReviewPage() {
     try {
       await approveCall(call.callId, {
         fields: newFields,
-        editCount: editedKeys.length,
+        editedFields: editedKeys,
         reviewSec,
         followupNeeded,
       });

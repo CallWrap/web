@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getQueue, getCall, saveCall } from '../api/api';
-import type { Call, CallFields, SaveCallPayload } from '../api/types';
+import type { Call, SaveCallPayload } from '../api/types';
 
 interface CallState {
   calls: Call[];
@@ -33,8 +33,8 @@ export const useCallStore = create<CallState>((set, get) => ({
   },
 
   fetchCall: async (id) => {
-    const local = get().calls.find((c) => c.callId === id);
-    if (local) return local;
+    // 대기열 캐시(calls)는 목록 API에서 온 placeholder(fields 비어있음)라 재사용하면 안 된다 —
+    // 검토 화면은 항상 상세 API로 실제 필드를 받아온다.
     try {
       return await getCall(id);
     } catch {
@@ -45,7 +45,7 @@ export const useCallStore = create<CallState>((set, get) => ({
   approveCall: async (id, payload) => {
     const saved = await saveCall(id, payload);
     set((s) => ({
-      calls: s.calls.map((c) => (c.callId === id ? { ...saved, followupActions: c.followupActions } : c)),
+      calls: s.calls.map((c) => (c.callId === id ? saved : c)),
       totalReviewSec: s.totalReviewSec + payload.reviewSec,
     }));
     return saved;
@@ -66,12 +66,3 @@ export const useCallStore = create<CallState>((set, get) => ({
     }));
   },
 }));
-
-/** confidence → tier 파생 (백엔드가 tier를 안 줄 때의 프론트 fallback) */
-export function deriveTier(confidence: number): 'high' | 'medium' | 'low' {
-  if (confidence >= 0.9) return 'high';
-  if (confidence >= 0.6) return 'medium';
-  return 'low';
-}
-
-export type { CallFields };
