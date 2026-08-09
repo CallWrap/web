@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { QueuePage } from './pages/QueuePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { FollowupPage } from './pages/FollowupPage';
 import { AdminPage } from './pages/AdminPage';
+import { LoginPage } from './pages/LoginPage';
 import { ToastHost } from './store/toastStore';
 import { useCallStore } from './store/callStore';
+import { useAuthStore } from './store/authStore';
 import { ADMIN_TABS } from './lib/adminTabs';
 
 function Topbar() {
@@ -61,7 +63,7 @@ function Sidebar() {
   );
 }
 
-export default function App() {
+function AuthedApp() {
   const loadQueue = useCallStore((s) => s.loadQueue);
   const { pathname } = useLocation();
   const isReview = pathname.startsWith('/review');
@@ -81,9 +83,37 @@ export default function App() {
           <Route path="/followups" element={<FollowupPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/:tab" element={<AdminPage />} />
+          <Route path="*" element={<Navigate to="/queue" replace />} />
         </Routes>
       </div>
       <ToastHost />
     </div>
   );
+}
+
+export default function App() {
+  const status = useAuthStore((s) => s.status);
+  const initialize = useAuthStore((s) => s.initialize);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (status === 'idle') initialize();
+  }, [status, initialize]);
+
+  if (status === 'idle' || status === 'checking') {
+    return (
+      <div className="login-page">
+        <div className="spinner" style={{ width: 22, height: 22 }} />
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    if (pathname === '/login') return <LoginPage />;
+    return <Navigate to="/login" replace />;
+  }
+
+  if (pathname === '/login') return <Navigate to="/queue" replace />;
+
+  return <AuthedApp />;
 }
