@@ -1,4 +1,4 @@
-export type AdminTab = 'overview' | 'measure' | 'grade' | 'ledger' | 'quality' | 'holdout';
+export type AdminTab = 'overview' | 'measure' | 'grade' | 'ledger' | 'quality' | 'holdout' | 'faq';
 
 export const ADMIN_TABS: { key: AdminTab; label: string; short: string }[] = [
   { key: 'overview', label: '개요', short: '개요' },
@@ -7,4 +7,5 @@ export const ADMIN_TABS: { key: AdminTab; label: string; short: string }[] = [
   { key: 'ledger', label: '상담대장', short: '대장' },
   { key: 'quality', label: '상담품질 자동평가', short: '품질' },
   { key: 'holdout', label: '홀드아웃 검증', short: '검증' },
+  { key: 'faq', label: 'FAQ 검수', short: 'FAQ' },
 ];

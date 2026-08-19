@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FieldKey } from '../api/types';
+import { FaqReviewPanel } from '../components/FaqReviewPanel';
 import { useCallStore } from '../store/callStore';
 import { fieldLabel, fmtDuration, fmtTime, gradeLabel, statusLabel, tierLabel } from '../lib/format';
 import { downloadCsv } from '../lib/exportCsv';
@@ -673,6 +674,9 @@ export function AdminPage() {
           </div>
         </>
       )}
+
+      {/* ═══════ FAQ 검수 ═══════ */}
+      {tab === 'faq' && <FaqReviewPanel />}
     </div>
   );
 }

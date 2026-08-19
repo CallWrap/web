@@ -6,6 +6,8 @@
 import { apiFetch } from './http';
 import type {
   BackendAudioUploadUrlResponse,
+  BackendFaqBatchResult,
+  BackendFaqEntry,
   BackendReviewCreateResponse,
   BackendReviewDetail,
   BackendReviewListResponse,
@@ -71,4 +73,32 @@ export async function createReview(params: {
     method: 'POST',
     body: params,
   });
+}
+
+/**
+ * FAQ 검수. Spring이 FastAPI(EXAONE 배치 생성)를 대신 호출해주는 프록시라 web은 Spring만 알면 된다.
+ * generate-batch는 여러 소분류를 순회하며 Ollama를 호출해서 오래 걸릴 수 있다 — 호출부에서 로딩 처리 필수.
+ */
+export async function triggerFaqBatch(): Promise<BackendFaqBatchResult> {
+  return apiFetch<BackendFaqBatchResult>('/api/faq-entries/generate-batch', { method: 'POST' });
+}
+
+export async function getFaqEntries(status?: 'DRAFT' | 'PUBLISHED' | 'DISCARDED'): Promise<BackendFaqEntry[]> {
+  const qs = status ? `?status=${status}` : '';
+  return apiFetch<BackendFaqEntry[]>(`/api/faq-entries${qs}`);
+}
+
+export async function updateFaqEntry(id: string, question: string, answer: string): Promise<BackendFaqEntry> {
+  return apiFetch<BackendFaqEntry>(`/api/faq-entries/${id}`, {
+    method: 'PATCH',
+    body: { question, answer },
+  });
+}
+
+export async function publishFaqEntry(id: string): Promise<BackendFaqEntry> {
+  return apiFetch<BackendFaqEntry>(`/api/faq-entries/${id}/publish`, { method: 'POST' });
+}
+
+export async function discardFaqEntry(id: string): Promise<BackendFaqEntry> {
+  return apiFetch<BackendFaqEntry>(`/api/faq-entries/${id}/discard`, { method: 'POST' });
 }

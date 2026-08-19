@@ -100,6 +100,24 @@ export interface BackendAudioUploadUrlResponse {
   audioUri: string;
 }
 
+/** GET/POST /api/faq-entries* — EXAONE이 needs_faq 콜들을 소분류별로 합성한 FAQ 후보. */
+export interface BackendFaqEntry {
+  id: string;
+  subcategory: string;
+  question: string;
+  answer: string;
+  sourceCallCount: number;
+  sampleCallIds: string[];
+  status: 'DRAFT' | 'PUBLISHED' | 'DISCARDED';
+  generatedAt: string;
+  publishedAt: string | null;
+}
+
+export interface BackendFaqBatchResult {
+  groupsProcessed: number;
+  entriesCreated: number;
+}
+
 export interface BackendErrorResponse {
   code: string;
   message: string;
