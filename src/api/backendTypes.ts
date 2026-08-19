@@ -60,6 +60,7 @@ export interface BackendReviewDetail {
   summary: BackendJudgment<unknown> | null;
   needsFollowup: BackendJudgment<unknown> | null;
   needsFaq: BackendJudgment<unknown> | null;
+  transcript: BackendUtterance[];
   failures: string[];
   confirmedAt: string | null;
   confirmedByCounselorId: string | null;

@@ -130,7 +130,6 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
   };
 }
 
-/** 전사가 실제로 내려오기 시작하면 toCall 안에서 (detail.transcript ?? []).map(toUtterance)로 쓴다. */
 export function toUtterance(u: BackendUtterance): Utterance {
   return {
     id: `u${u.index}`,
@@ -156,7 +155,7 @@ export function toCall(detail: BackendReviewDetail): Call {
     durationSec: detail.callDurationSec,
     status: mapCallStatus(detail.status, needsFollowup),
     grade: mapGrade(detail.classification?.grade),
-    transcript: [], // TODO(백엔드 갭): ResultMessage에 transcript 실리면 매핑 (toUtterance 사용)
+    transcript: (detail.transcript ?? []).map(toUtterance),
     fields,
     confirmedAt: detail.confirmedAt,
     followupActions: needsFollowup ? defaultFollowupActions(detail.reviewId) : undefined,

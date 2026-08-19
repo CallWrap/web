@@ -33,8 +33,9 @@ export async function getCall(id: string): Promise<Call | undefined> {
 }
 
 /**
- * 검토 확정. 백엔드 ReviewConfirmRequest는 { confirmedFields, editedFields }만 받는다
- * (reviewSec은 백엔드에 저장 컬럼이 없어 아직 전송하지 않는다 — 갭 목록 참고).
+ * 검토 확정. reviewSec은 ReviewConfirmRequest가 필드를 받기 전까지는 백엔드가 그냥
+ * 무시한다(FAIL_ON_UNKNOWN_PROPERTIES=false라 에러는 안 남) — 백엔드 마이그레이션 적용되면
+ * 바로 저장되기 시작한다.
  * 확정 응답엔 갱신된 필드 전체가 안 실려오므로, 확정 직후 상세를 다시 조회해 최신 상태로 맞춘다.
  */
 export async function saveCall(id: string, payload: SaveCallPayload): Promise<Call> {
@@ -45,7 +46,7 @@ export async function saveCall(id: string, payload: SaveCallPayload): Promise<Ca
 
   await apiFetch(`/api/reviews/${id}/confirm`, {
     method: 'PATCH',
-    body: { confirmedFields, editedFields: payload.editedFields },
+    body: { confirmedFields, editedFields: payload.editedFields, reviewSec: payload.reviewSec },
   });
 
   const detail = await apiFetch<BackendReviewDetail>(`/api/reviews/${id}`);
