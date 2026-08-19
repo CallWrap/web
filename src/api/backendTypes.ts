@@ -118,6 +118,19 @@ export interface BackendFaqBatchResult {
   entriesCreated: number;
 }
 
+/**
+ * GET /api/reviews/stats — 관리자 대시보드 개요용 집계. DB에서 GROUP BY/AVG로 계산해서 온다.
+ * gradeCounts 키는 Judgment.value 그대로("일반"/"칭찬콜"/"악성콜"/"미판정"), typeCounts는
+ * 상담유형 라벨("미분류" 포함) — 아직 SR 모델 미연동이라 대부분 ETC로 잡힌다.
+ */
+export interface BackendReviewStats {
+  totalCalls: number;
+  statusCounts: Record<string, number>;
+  gradeCounts: Record<string, number>;
+  typeCounts: Record<string, number>;
+  avgReviewSec: number | null;
+}
+
 export interface BackendErrorResponse {
   code: string;
   message: string;

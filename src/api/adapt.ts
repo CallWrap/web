@@ -41,7 +41,8 @@ export function deriveTier(confidence: number): 'high' | 'medium' | 'low' {
   return 'low';
 }
 
-const GRADE_MAP: Record<string, CallGrade> = {
+// AdminPage가 /api/reviews/stats의 gradeCounts(한글 라벨) 키를 web CallGrade로 옮길 때도 쓴다.
+export const GRADE_MAP: Record<string, CallGrade> = {
   일반: 'normal',
   칭찬콜: 'praise',
   악성콜: 'malicious',

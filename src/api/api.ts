@@ -11,6 +11,7 @@ import type {
   BackendReviewCreateResponse,
   BackendReviewDetail,
   BackendReviewListResponse,
+  BackendReviewStats,
 } from './backendTypes';
 import { toCall, toCallFromSummary } from './adapt';
 import type { Call, FieldKey, SaveCallPayload } from './types';
@@ -22,6 +23,14 @@ import type { Call, FieldKey, SaveCallPayload } from './types';
 export async function getQueue(): Promise<Call[]> {
   const res = await apiFetch<BackendReviewListResponse>('/api/reviews?page=0&size=100');
   return res.items.map(toCallFromSummary);
+}
+
+/**
+ * 관리자 대시보드 개요용 집계. getQueue()는 최근 100건까지만 주는 목록이라 그걸로 세면
+ * 100건이 넘는 순간부터 통계가 틀어진다 — 이건 DB에서 전체를 대상으로 집계해서 온다.
+ */
+export async function getReviewStats(): Promise<BackendReviewStats> {
+  return apiFetch<BackendReviewStats>('/api/reviews/stats');
 }
 
 /** 단일 콜 상세 조회 — 전사·필드 전체는 여기서만 받아온다. */

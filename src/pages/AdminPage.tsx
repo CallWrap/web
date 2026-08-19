@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -13,6 +13,9 @@ import {
 } from 'recharts';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FieldKey } from '../api/types';
+import type { BackendReviewStats } from '../api/backendTypes';
+import { getReviewStats } from '../api/api';
+import { GRADE_MAP } from '../api/adapt';
 import { FaqReviewPanel } from '../components/FaqReviewPanel';
 import { useCallStore } from '../store/callStore';
 import { fieldLabel, fmtDuration, fmtTime, gradeLabel, statusLabel, tierLabel } from '../lib/format';
@@ -68,27 +71,60 @@ export function AdminPage() {
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
+  // 개요 탭 집계: DB에서 GROUP BY/AVG로 계산해서 온다 (/api/reviews/stats).
+  // getQueue()가 주는 calls는 최근 100건 캡이 걸려 있어서 그걸로 세면 100건이 넘는 순간부터
+  // 통계가 틀어진다 — stats가 로드되기 전까지만 기존 방식(calls 기준)으로 fallback한다.
+  const [stats, setStats] = useState<BackendReviewStats | null>(null);
+  useEffect(() => {
+    getReviewStats()
+      .then(setStats)
+      .catch(() => {
+        // 집계 실패는 조용히 넘어간다 — 아래 fallback(calls 기준 계산)이 그대로 쓰인다.
+      });
+  }, []);
+
+  function gradeCountFrom(gradeCounts: Record<string, number>, webGrade: 'normal' | 'praise' | 'malicious') {
+    return Object.entries(gradeCounts).reduce(
+      (sum, [label, n]) => sum + (GRADE_MAP[label] === webGrade ? n : 0),
+      0,
+    );
+  }
+
   const processed = calls.filter((c) => c.status === 'confirmed' || c.status === 'followup');
   const processedWithTime = processed.filter((c) => c.reviewSec != null);
-  const avgReview =
-    processedWithTime.length > 0
+  const avgReview = stats?.avgReviewSec != null
+    ? Math.round(stats.avgReviewSec)
+    : processedWithTime.length > 0
       ? Math.round(totalReviewSec / processedWithTime.length)
       : 0;
   const savingPct =
     avgReview > 0 ? Math.round((1 - avgReview / BASELINE_REVIEW_SEC) * 100) : 68;
 
-  const maliciousCount = calls.filter((c) => c.grade === 'malicious').length;
-  const praiseCount = calls.filter((c) => c.grade === 'praise').length;
-  const normalCount = calls.filter((c) => c.grade === 'normal').length;
-  const maliciousRate = Math.round((maliciousCount / Math.max(1, calls.length)) * 100);
+  const maliciousCount = stats
+    ? gradeCountFrom(stats.gradeCounts, 'malicious')
+    : calls.filter((c) => c.grade === 'malicious').length;
+  const praiseCount = stats
+    ? gradeCountFrom(stats.gradeCounts, 'praise')
+    : calls.filter((c) => c.grade === 'praise').length;
+  const normalCount = stats
+    ? gradeCountFrom(stats.gradeCounts, 'normal')
+    : calls.filter((c) => c.grade === 'normal').length;
+  const totalCount = stats ? stats.totalCalls : calls.length;
+  const maliciousRate = Math.round((maliciousCount / Math.max(1, totalCount)) * 100);
 
-  // 상담유형 분포 (오늘 큐 기준)
-  const typeCounts = new Map<string, number>();
-  calls.forEach((c) => {
-    const t = c.fields.type.value || '미분류';
-    typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
-  });
-  const typeDist = Array.from(typeCounts, ([type, n]) => ({ type, n })).sort((a, b) => b.n - a.n);
+  // 상담유형 분포 — stats가 오면 전체 기준(DB 집계), 아니면 지금 로드된 큐 기준 fallback
+  const typeDist = stats
+    ? Object.entries(stats.typeCounts)
+        .map(([type, n]) => ({ type, n }))
+        .sort((a, b) => b.n - a.n)
+    : (() => {
+        const typeCounts = new Map<string, number>();
+        calls.forEach((c) => {
+          const t = c.fields.type.value || '미분류';
+          typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+        });
+        return Array.from(typeCounts, ([type, n]) => ({ type, n })).sort((a, b) => b.n - a.n);
+      })();
   const typeColors = ['#4f46e5', '#0891b2', '#d97706', '#be185d', '#059669', '#7c3aed', '#0284c7', '#65a30d'];
 
   const avgMM = Math.floor(avgReview / 60);
@@ -173,7 +209,7 @@ export function AdminPage() {
           칭찬 <b>{praiseCount}</b>
         </span>
         <span className="stat-pill total">
-          전체 <b>{calls.length}</b>
+          전체 <b>{totalCount}</b>
         </span>
       </div>
 
