@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useCallStore } from "../store/callStore";
+import { useReviewStream } from "../hooks/useReviewStream";
 import { QueueRow } from "../components/QueueRow";
 import { SealIcon } from "../components/icons";
 
@@ -9,6 +10,10 @@ export function QueuePage() {
   useEffect(() => {
     loadQueue();
   }, [loadQueue]);
+
+  // 상담이 끝나서 상태가 바뀌거나(분석 중→검토 대기) 다른 상담사가 확정해서 항목이
+  // 빠지는 걸 새로고침 없이 실시간으로 반영한다.
+  useReviewStream();
 
   // 악성콜(감정노동 보호 대상)을 맨 위로 — 상담원이 대기열을 훑을 때 가장 먼저 눈에 들어와야 함
   const pending = calls
