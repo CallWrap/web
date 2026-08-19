@@ -70,6 +70,12 @@ export interface Call {
   isSummary?: boolean;
   /** 목록에서 온 AI 확신 집계 (fields 전체 없이도 "N/M 항목 확신" 표시용) */
   confidenceSummary?: { high: number; total: number };
+  /**
+   * 백엔드가 실패로 보고한 AI 모듈명 목록 (예: "summarize", "needs_followup").
+   * "확신도가 낮음"과 "이 항목 자체가 아직 미구현"은 다른 상황이라 구분해서 보여준다.
+   * 목록 API에선 안 옴 — 상세 조회에서만 채워짐.
+   */
+  failures: string[];
 }
 
 export interface FollowupAction {

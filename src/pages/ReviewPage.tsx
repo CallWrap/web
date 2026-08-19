@@ -230,6 +230,7 @@ export function ReviewPage() {
               fields={call.fields}
               values={values}
               editedKeys={editedKeys}
+              failures={call.failures}
               onChange={setValue}
               onEvidenceClick={scrollToEvidence}
             />

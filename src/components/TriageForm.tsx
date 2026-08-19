@@ -7,13 +7,31 @@ interface Props {
   fields: CallFields;
   values: Values;
   editedKeys: FieldKey[];
+  failures: string[];
   onChange: (key: FieldKey, value: string | boolean) => void;
   onEvidenceClick: (uttId: string) => void;
 }
 
 const tierIcon: Record<Tier, string> = { high: '✓', medium: '◈', low: '✎' };
 
-export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceClick }: Props) {
+/**
+ * FieldKey → 이 필드를 채우는 AI 모듈명(들). analysis.failures에 이 이름이 있으면
+ * "확신도가 낮음"이 아니라 "이 항목 자체가 아직 AI에 연결 안 됨"이라는 뜻이라 문구를 다르게 보여준다.
+ * type(유형)은 AI-model이 아직 판정 자체를 안 하고 항상 고정값을 주면서도 failures엔 안 잡혀 있어서
+ * 여기 매핑이 없다 — 이 부분은 뒤에서 확인 필요.
+ */
+const FIELD_FAILURE_MODULES: Partial<Record<FieldKey, string[]>> = {
+  category: ['classify_category', 'subcategory_hierarchy'],
+  grade: ['grade'],
+  summary: ['summarize'],
+  followup: ['needs_followup'],
+};
+
+function isUnimplemented(key: FieldKey, failures: string[]): boolean {
+  return (FIELD_FAILURE_MODULES[key] ?? []).some((m) => failures.includes(m));
+}
+
+export function TriageForm({ fields, values, editedKeys, failures, onChange, onEvidenceClick }: Props) {
   const highKeys = FIELD_ORDER.filter((k) => fields[k].tier === 'high');
   const restKeys = FIELD_ORDER.filter((k) => fields[k].tier !== 'high');
 
@@ -88,7 +106,12 @@ export function TriageForm({ fields, values, editedKeys, onChange, onEvidenceCli
           )}
         </div>
         <div className="fbody">
-          {f.tier === 'low' && (
+          {f.tier === 'low' && isUnimplemented(key, failures) && (
+            <div className="low-hint unimplemented">
+              <span>🛠</span> 이 항목은 아직 AI 분석에 연결되지 않았습니다. 상담사가 직접 입력해 주세요.
+            </div>
+          )}
+          {f.tier === 'low' && !isUnimplemented(key, failures) && (
             <div className="low-hint">
               <span>✎</span> AI 신뢰도가 낮습니다. 상담사가 직접 판단해 입력해 주세요.
             </div>
