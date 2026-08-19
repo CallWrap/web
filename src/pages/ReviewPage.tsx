@@ -10,7 +10,7 @@ import { fmtDuration, fmtTime } from '../lib/format';
 
 export type Values = Record<FieldKey, string | boolean>;
 
-export const FIELD_ORDER: FieldKey[] = ['type', 'category', 'grade', 'summary', 'followup'];
+export const FIELD_ORDER: FieldKey[] = ['type', 'category', 'subcategory', 'grade', 'summary', 'followup', 'faq'];
 
 export function ReviewPage() {
   const { callId = '' } = useParams();

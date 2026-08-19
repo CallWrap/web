@@ -39,11 +39,13 @@ export interface FormFieldData<T = string | boolean> {
 
 /** 후처리 폼 전체 */
 export interface CallFields {
-  type: FormFieldData<string>; // 상담유형
-  category: FormFieldData<string>; // 상담분류
+  type: FormFieldData<string>; // 상담유형 (SR모델 미통합 — 항상 ETC 자리표시자, PR 후 갱신 예정)
+  category: FormFieldData<string>; // 상담분류(중분류)
+  subcategory: FormFieldData<string>; // 상담분류(소분류, 29종 — 보조 출력)
   grade: FormFieldData<string>; // 상담등급
-  summary: FormFieldData<string>; // 문의·처리내용 요약
+  summary: FormFieldData<string>; // 문의·처리내용 요약 (title/inquiry/resolution을 합쳐 표시)
   followup: FormFieldData<boolean>; // 후속처리 필요 여부
+  faq: FormFieldData<boolean>; // FAQ/지식베이스 반영 필요 여부
 }
 
 export type FieldKey = keyof CallFields;

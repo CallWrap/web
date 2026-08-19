@@ -17,14 +17,16 @@ const tierIcon: Record<Tier, string> = { high: '✓', medium: '◈', low: '✎' 
 /**
  * FieldKey → 이 필드를 채우는 AI 모듈명(들). analysis.failures에 이 이름이 있으면
  * "확신도가 낮음"이 아니라 "이 항목 자체가 아직 AI에 연결 안 됨"이라는 뜻이라 문구를 다르게 보여준다.
- * type(유형)은 AI-model이 아직 판정 자체를 안 하고 항상 고정값을 주면서도 failures엔 안 잡혀 있어서
- * 여기 매핑이 없다 — 이 부분은 뒤에서 확인 필요.
+ * type(유형)은 상담유형 전용 SR모델이 아직 analyze()에 안 붙어서(별도 레포/리뷰 진행 중) 항상
+ * ETC 고정값만 나온다 — AI-model이 failures에 반영해주면(예: "classify_type") 그 키를 여기 추가한다.
  */
 const FIELD_FAILURE_MODULES: Partial<Record<FieldKey, string[]>> = {
-  category: ['classify_category', 'subcategory_hierarchy'],
+  category: ['classify_category'],
+  subcategory: ['classify_subcategory', 'subcategory_hierarchy'],
   grade: ['grade'],
   summary: ['summarize'],
   followup: ['needs_followup'],
+  faq: ['needs_faq'],
 };
 
 function isUnimplemented(key: FieldKey, failures: string[]): boolean {
@@ -51,7 +53,8 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
   function renderInput(key: FieldKey) {
     const f = fields[key];
     const value = values[key];
-    if (key === 'followup') {
+    if (key === 'followup' || key === 'faq') {
+      const label = key === 'followup' ? '후속처리가 필요합니다' : 'FAQ/지식베이스에 반영이 필요합니다';
       return (
         <div className="check-row">
           <input
@@ -60,7 +63,7 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
             checked={Boolean(value)}
             onChange={(e) => onChange(key, e.target.checked)}
           />
-          <label htmlFor={`t-${key}`}>후속처리가 필요합니다</label>
+          <label htmlFor={`t-${key}`}>{label}</label>
         </div>
       );
     }
@@ -140,7 +143,7 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
       <div key={key} className={`triage-quiet-row ${bulkApproved ? 'done' : ''}`}>
         <span className="ck">{bulkApproved ? '✓' : ''}</span>
         <span className="k">{fieldLabel[key]}</span>
-        {key === 'followup' ? (
+        {key === 'followup' || key === 'faq' ? (
           <label className="quiet-check">
             <input
               type="checkbox"

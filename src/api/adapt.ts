@@ -27,9 +27,11 @@ const EMPTY_BOOL_FIELD: FormFieldData<boolean> = { value: false, confidence: 0, 
 const EMPTY_FIELDS: CallFields = {
   type: EMPTY_STRING_FIELD,
   category: EMPTY_STRING_FIELD,
+  subcategory: EMPTY_STRING_FIELD,
   grade: EMPTY_STRING_FIELD,
   summary: EMPTY_STRING_FIELD,
   followup: EMPTY_BOOL_FIELD,
+  faq: EMPTY_BOOL_FIELD,
 };
 
 /** confidence → tier 파생 (백엔드가 tier를 안 줄 때의 프론트 fallback) */
@@ -84,6 +86,34 @@ function judgmentToStringField(judgment: BackendJudgment<unknown> | null | undef
   }
   return {
     value: judgment.value == null ? '' : String(judgment.value),
+    confidence: judgment.confidence ?? 0,
+    tier: deriveTier(judgment.confidence ?? 0),
+    evidence: (judgment.evidenceIndices ?? []).map((i) => `u${i}`),
+  };
+}
+
+/**
+ * AI-model의 Summary는 {title, inquiry, resolution} 객체다(단일 문자열 아님) — 그대로
+ * judgmentToStringField에 넣으면 String(value)가 "[object Object]"를 뱉는다. 세 필드를
+ * 사람이 읽을 수 있는 한 덩어리 텍스트로 합쳐서 기존 textarea 필드에 그대로 태운다.
+ */
+function judgmentToSummaryField(judgment: BackendJudgment<unknown> | null | undefined): FormFieldData<string> {
+  if (!judgment) {
+    return { value: '', confidence: 0, tier: 'low', evidence: [] };
+  }
+  const raw = judgment.value as { title?: string; inquiry?: string; resolution?: string } | string | null;
+  let text = '';
+  if (raw && typeof raw === 'object') {
+    const lines: string[] = [];
+    if (raw.title) lines.push(`[${raw.title}]`);
+    if (raw.inquiry) lines.push(`문의: ${raw.inquiry}`);
+    if (raw.resolution) lines.push(`처리: ${raw.resolution}`);
+    text = lines.join('\n');
+  } else if (typeof raw === 'string') {
+    text = raw;
+  }
+  return {
+    value: text,
     confidence: judgment.confidence ?? 0,
     tier: deriveTier(judgment.confidence ?? 0),
     evidence: (judgment.evidenceIndices ?? []).map((i) => `u${i}`),
@@ -145,9 +175,11 @@ export function toCall(detail: BackendReviewDetail): Call {
   const fields: CallFields = {
     type: judgmentToStringField(detail.classification?.type),
     category: judgmentToStringField(detail.classification?.category),
+    subcategory: judgmentToStringField(detail.classification?.subcategory),
     grade: judgmentToStringField(detail.classification?.grade),
-    summary: judgmentToStringField(detail.summary),
+    summary: judgmentToSummaryField(detail.summary),
     followup: judgmentToBoolField(detail.needsFollowup),
+    faq: judgmentToBoolField(detail.needsFaq),
   };
 
   return {
