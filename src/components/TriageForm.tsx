@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CallFields, FieldKey, Tier } from '../api/types';
+import type { CallFields, FieldKey, SummaryValue, Tier } from '../api/types';
 import { fieldLabel, tierLabel } from '../lib/format';
 import { FIELD_ORDER, type Values } from '../pages/ReviewPage';
 
@@ -8,7 +8,7 @@ interface Props {
   values: Values;
   editedKeys: FieldKey[];
   failures: string[];
-  onChange: (key: FieldKey, value: string | boolean) => void;
+  onChange: (key: FieldKey, value: Values[FieldKey]) => void;
   onEvidenceClick: (uttId: string) => void;
 }
 
@@ -68,13 +68,39 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
       );
     }
     if (key === 'summary') {
+      // 상담시스템 폼과 같은 세 칸이다. 합쳐서 하나로 받으면 확정할 때 구조가 깨진다.
+      const s = value as SummaryValue;
+      const patch = (part: Partial<SummaryValue>) => onChange(key, { ...s, ...part });
       return (
-        <textarea
-          rows={4}
-          value={String(value)}
-          placeholder={f.tier === 'low' ? '상담 내용을 직접 요약해 입력하세요' : ''}
-          onChange={(e) => onChange(key, e.target.value)}
-        />
+        <div className="summary-fields">
+          <label>
+            <span>요청제목</span>
+            <input
+              type="text"
+              value={s.title}
+              placeholder={f.tier === 'low' ? '한 줄 제목을 입력하세요' : ''}
+              onChange={(e) => patch({ title: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>문의내용</span>
+            <textarea
+              rows={3}
+              value={s.inquiry}
+              placeholder={f.tier === 'low' ? '고객이 무엇을 문의했는지 입력하세요' : ''}
+              onChange={(e) => patch({ inquiry: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>처리내용</span>
+            <textarea
+              rows={3}
+              value={s.resolution}
+              placeholder={f.tier === 'low' ? '상담사가 어떻게 처리했는지 입력하세요' : ''}
+              onChange={(e) => patch({ resolution: e.target.value })}
+            />
+          </label>
+        </div>
       );
     }
     return (
@@ -153,11 +179,13 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
             필요
           </label>
         ) : key === 'summary' ? (
-          <textarea
-            className="quiet-textarea"
-            rows={2}
-            value={String(values[key])}
-            onChange={(e) => onChange(key, e.target.value)}
+          // 접힌 줄에서는 제목만 고친다. 본문까지 편집하려면 "근거 ▾"로 펼친다.
+          <input
+            className="quiet-input"
+            type="text"
+            value={(values[key] as SummaryValue).title}
+            placeholder="요청제목"
+            onChange={(e) => onChange(key, { ...(values[key] as SummaryValue), title: e.target.value })}
           />
         ) : (
           <input

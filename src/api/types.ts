@@ -29,8 +29,20 @@ export interface Utterance {
   text: string;
 }
 
+/**
+ * 요약. AI-model의 `Summary`(title/inquiry/resolution) 계약 그대로다.
+ * 세 값을 한 덩어리 문자열로 합쳐서 다루면 안 된다 — 확정(confirm) 시 그 문자열이
+ * 백엔드 JSONB의 구조를 통째로 덮어써서 대기열 제목·FAQ 후보 조회가 죽는다.
+ * 실제 상담시스템 폼도 요청제목/요청내용/처리내용 세 칸이다.
+ */
+export interface SummaryValue {
+  title: string;
+  inquiry: string;
+  resolution: string;
+}
+
 /** AI가 채운 후처리 폼의 단일 항목 */
-export interface FormFieldData<T = string | boolean> {
+export interface FormFieldData<T = string | boolean | SummaryValue> {
   value: T;
   confidence: number; // 0~1
   tier: Tier;
@@ -43,7 +55,7 @@ export interface CallFields {
   category: FormFieldData<string>; // 상담분류(중분류)
   subcategory: FormFieldData<string>; // 상담분류(소분류, 29종 — 보조 출력)
   grade: FormFieldData<string>; // 상담등급
-  summary: FormFieldData<string>; // 문의·처리내용 요약 (title/inquiry/resolution을 합쳐 표시)
+  summary: FormFieldData<SummaryValue>; // 요청제목·문의내용·처리내용 (구조 그대로 왕복한다)
   followup: FormFieldData<boolean>; // 후속처리 필요 여부
   faq: FormFieldData<boolean>; // FAQ/지식베이스 반영 필요 여부
 }
