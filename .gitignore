@@ -4,3 +4,6 @@ dist
 *.log
 .DS_Store
 CLAUDE.md
+
+# tsc -b 증분 빌드 캐시 — 타입체크 돌릴 때마다 바뀌어서 매번 diff에 뜬다
+*.tsbuildinfo

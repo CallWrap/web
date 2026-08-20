@@ -58,6 +58,8 @@ export type FieldKey = keyof CallFields;
  */
 export interface Call {
   callId: string;
+  /** AI 요약 제목. 대기열에서 콜을 구분하는 사람이 읽는 식별자 — 분석 전이면 null */
+  title?: string | null;
   startedAt: string | null; // 백엔드가 아직 call_started_at을 안 줌 — null 가능
   durationSec: number | null; // 백엔드가 아직 안 줌 — null 가능
   status: CallStatus;

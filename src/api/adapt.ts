@@ -150,7 +150,8 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
   const needsFollowup = Boolean(item.needsFollowup?.value);
   return {
     callId: item.reviewId,
-    startedAt: item.callStartedAt,
+    title: item.title ?? null,
+    startedAt: item.callStartedAt ?? null,
     durationSec: null, // TODO(백엔드 갭): 목록 API엔 call_duration_sec이 없음 — 상세에서만 나옴
     status: mapCallStatus(item.status, needsFollowup),
     grade: mapGrade(item.grade),
@@ -185,6 +186,7 @@ export function toCall(detail: BackendReviewDetail): Call {
 
   return {
     callId: detail.reviewId,
+    title: (detail.summary?.value as { title?: string } | null | undefined)?.title ?? null,
     startedAt: detail.callStartedAt,
     durationSec: detail.callDurationSec,
     status: mapCallStatus(detail.status, needsFollowup),
