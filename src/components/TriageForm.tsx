@@ -1,5 +1,12 @@
 import { useState } from 'react';
 import type { CallFields, FieldKey, SummaryValue, Tier } from '../api/types';
+import {
+  CONSULTATION_CATEGORIES,
+  CONSULTATION_GRADES,
+  CONSULTATION_TYPES,
+  getSubcategoryOptions,
+  normalizeSubcategoryForCategory,
+} from '../lib/classificationOptions';
 import { fieldLabel, tierLabel } from '../lib/format';
 import { FIELD_ORDER, type Values } from '../pages/ReviewPage';
 
@@ -38,6 +45,7 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
   const restKeys = FIELD_ORDER.filter((k) => fields[k].tier !== 'high');
 
   const [bulkApproved, setBulkApproved] = useState(false);
+  const [subcategoryReset, setSubcategoryReset] = useState(false);
   // 신뢰도로 결정되는 것은 "기본 표시 상태"뿐 — 수정 가능 여부는 항상 열려 있다.
   const [openHigh, setOpenHigh] = useState<Set<FieldKey>>(new Set());
 
@@ -48,6 +56,69 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
       else next.add(key);
       return next;
     });
+  }
+
+  function changeCategory(category: string) {
+    const nextSubcategory = normalizeSubcategoryForCategory(category, String(values.subcategory));
+    const categoryChanged = category !== values.category;
+    onChange('category', category);
+    if (nextSubcategory !== values.subcategory) {
+      onChange('subcategory', nextSubcategory);
+    }
+    if (categoryChanged && nextSubcategory === '') {
+      setSubcategoryReset(true);
+    }
+  }
+
+  function renderChoiceGroup(key: 'type' | 'category' | 'subcategory' | 'grade') {
+    const options =
+      key === 'type'
+        ? CONSULTATION_TYPES
+        : key === 'category'
+          ? CONSULTATION_CATEGORIES
+          : key === 'subcategory'
+            ? getSubcategoryOptions(String(values.category))
+            : CONSULTATION_GRADES;
+    const selected = String(values[key]);
+    const hasUnknownValue = selected !== '' && !options.includes(selected);
+
+    if (key === 'subcategory' && options.length === 0) {
+      return <p className="choice-hint">중분류를 먼저 선택해 주세요.</p>;
+    }
+
+    return (
+      <div>
+        {hasUnknownValue && (
+          <p className="choice-hint warning">
+            현재 값 ‘{selected}’은 선택한 분류 체계에 없습니다. 아래에서 다시 선택해 주세요.
+          </p>
+        )}
+        {key === 'subcategory' && subcategoryReset && selected === '' && (
+          <p className="choice-hint warning">중분류가 변경되어 소분류를 다시 선택해 주세요.</p>
+        )}
+        <div className="choice-group" role="radiogroup" aria-label={fieldLabel[key]}>
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`choice-chip ${selected === option ? 'selected' : ''}`}
+              role="radio"
+              aria-checked={selected === option}
+              onClick={() => {
+                if (key === 'category') changeCategory(option);
+                else {
+                  onChange(key, option);
+                  if (key === 'subcategory') setSubcategoryReset(false);
+                }
+              }}
+            >
+              {selected === option && <span aria-hidden="true">✓</span>}
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   function renderInput(key: FieldKey) {
@@ -102,6 +173,9 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
           </label>
         </div>
       );
+    }
+    if (key === 'type' || key === 'category' || key === 'subcategory' || key === 'grade') {
+      return renderChoiceGroup(key);
     }
     return (
       <input
@@ -165,39 +239,38 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
 
   function renderQuietRow(key: FieldKey) {
     const edited = editedKeys.includes(key);
+    const isChoiceField = key === 'type' || key === 'category' || key === 'subcategory' || key === 'grade';
     return (
       <div key={key} className={`triage-quiet-row ${bulkApproved ? 'done' : ''}`}>
-        <span className="ck">{bulkApproved ? '✓' : ''}</span>
         <span className="k">{fieldLabel[key]}</span>
-        {key === 'followup' || key === 'faq' ? (
-          <label className="quiet-check">
+        <div className="quiet-value-cell">
+          {key === 'followup' || key === 'faq' ? (
+            <label className={`quiet-check ${Boolean(values[key]) ? 'checked' : ''}`}>
+              <input
+                type="checkbox"
+                checked={Boolean(values[key])}
+                onChange={(e) => onChange(key, e.target.checked)}
+              />
+              필요
+            </label>
+          ) : key === 'summary' ? (
+            // 접힌 줄에서는 제목만 고친다. 본문까지 편집하려면 "근거 ▾"로 펼친다.
             <input
-              type="checkbox"
-              checked={Boolean(values[key])}
-              onChange={(e) => onChange(key, e.target.checked)}
+              className="quiet-input"
+              type="text"
+              value={(values[key] as SummaryValue).title}
+              placeholder="요청제목"
+              onChange={(e) => onChange(key, { ...(values[key] as SummaryValue), title: e.target.value })}
             />
-            필요
-          </label>
-        ) : key === 'summary' ? (
-          // 접힌 줄에서는 제목만 고친다. 본문까지 편집하려면 "근거 ▾"로 펼친다.
-          <input
-            className="quiet-input"
-            type="text"
-            value={(values[key] as SummaryValue).title}
-            placeholder="요청제목"
-            onChange={(e) => onChange(key, { ...(values[key] as SummaryValue), title: e.target.value })}
-          />
-        ) : (
-          <input
-            className="quiet-input"
-            type="text"
-            value={String(values[key])}
-            onChange={(e) => onChange(key, e.target.value)}
-          />
-        )}
-        {edited && <span className="edited-tag">수정됨</span>}
+          ) : (
+            <span className={`quiet-value ${isChoiceField ? 'value-chip' : ''}`}>
+              {String(values[key]) || '선택 필요'}
+            </span>
+          )}
+          {edited && <span className="edited-tag">수정됨</span>}
+        </div>
         <button className="quiet-toggle" onClick={() => toggleOpen(key)}>
-          근거 ▾
+          {isChoiceField ? '수정 ▾' : '근거 ▾'}
         </button>
       </div>
     );
@@ -205,28 +278,28 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
 
   return (
     <div className="form-list">
-      {highKeys.length > 0 &&
-        (bulkApproved ? (
-          <div className="triage-bulk done">
-            <span className="txt">✓ 확신 항목 {highKeys.length}건 일괄 승인됨</span>
-          </div>
-        ) : (
-          <div className="triage-bulk">
-            <span className="txt">
-              AI 확신 {highKeys.length}/{FIELD_ORDER.length} 항목 — 근거 확인 완료
-            </span>
-            <button className="btn high sm" onClick={() => setBulkApproved(true)}>
-              일괄 승인
-            </button>
-          </div>
-        ))}
-
       {highKeys.length > 0 && (
-        <div className="triage-quiet">
-          {highKeys.map((k) =>
-            openHigh.has(k) ? renderCard(k, () => toggleOpen(k)) : renderQuietRow(k),
+        <section className="triage-confidence-card" aria-label="AI 확신 항목">
+          {bulkApproved ? (
+            <div className="triage-bulk done">
+              <span className="txt">✓ AI 확신 항목 {highKeys.length}개 일괄 승인됨</span>
+            </div>
+          ) : (
+            <div className="triage-bulk">
+              <span className="txt">
+                AI 확신 항목 {highKeys.length}/{FIELD_ORDER.length}
+              </span>
+              <button className="btn high sm" onClick={() => setBulkApproved(true)}>
+                {highKeys.length}개 일괄 승인
+              </button>
+            </div>
           )}
-        </div>
+          <div className="triage-quiet">
+            {highKeys.map((k) =>
+              openHigh.has(k) ? renderCard(k, () => toggleOpen(k)) : renderQuietRow(k),
+            )}
+          </div>
+        </section>
       )}
 
       {restKeys.length > 0 && (

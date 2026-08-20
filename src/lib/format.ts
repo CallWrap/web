@@ -52,7 +52,7 @@ export const tierLabel: Record<Tier, string> = {
 };
 
 export const fieldLabel: Record<string, string> = {
-  type: '상담유형',
+  type: '상담유형(SR)',
   category: '상담분류(중분류)',
   subcategory: '상담분류(소분류)',
   grade: '상담등급',
