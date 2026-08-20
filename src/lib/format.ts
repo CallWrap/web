@@ -1,10 +1,21 @@
-import type { CallGrade, CallStatus, Tier } from '../api/types';
+import type { CallGrade, CallStatus, SummaryValue, Tier } from '../api/types';
 
 export function fmtDuration(sec: number | null | undefined): string {
   if (sec == null) return '—';
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}분 ${s.toString().padStart(2, '0')}초`;
+}
+
+/**
+ * 요약을 한 줄 텍스트로. 목록·검색·CSV처럼 "읽기만" 하는 자리에서만 쓴다.
+ * 저장 경로에서는 절대 쓰지 않는다 — 구조를 잃으면 백엔드 JSONB가 망가진다.
+ */
+export function summaryText(s: SummaryValue | null | undefined): string {
+  if (!s) return '';
+  return [s.title && `[${s.title}]`, s.inquiry && `문의: ${s.inquiry}`, s.resolution && `처리: ${s.resolution}`]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function fmtTime(iso: string | null | undefined): string {

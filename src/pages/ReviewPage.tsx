@@ -8,7 +8,16 @@ import { TriageForm } from '../components/TriageForm';
 import { GradeBadge } from '../components/StatusBadge';
 import { fmtDuration, fmtTime } from '../lib/format';
 
-export type Values = Record<FieldKey, string | boolean>;
+/** 필드마다 값 타입이 다르다 (summary는 객체) — 매핑 타입으로 정확히 잡는다. */
+export type Values = { [K in FieldKey]: CallFields[K]['value'] };
+
+/** 원시값은 그대로, 객체(summary)는 내용으로 비교한다. */
+function isSameValue(a: unknown, b: unknown): boolean {
+  if (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return a === b;
+}
 
 export const FIELD_ORDER: FieldKey[] = ['type', 'category', 'subcategory', 'grade', 'summary', 'followup', 'faq'];
 
@@ -42,9 +51,10 @@ export function ReviewPage() {
       if (!alive) return;
       setCall(c);
       if (c) {
-        const v = {} as Values;
+        // 매핑 타입은 union 키로 인덱싱하면 교집합(never)이 된다 — 채울 때만 느슨한 레코드를 쓴다.
+        const v = {} as Record<FieldKey, Values[FieldKey]>;
         FIELD_ORDER.forEach((k) => (v[k] = c.fields[k].value));
-        setValues(v);
+        setValues(v as Values);
         enterTime.current = Date.now();
       }
       setSettled(true);
@@ -114,7 +124,8 @@ export function ReviewPage() {
     );
   }
 
-  const editedKeys = FIELD_ORDER.filter((k) => values[k] !== call.fields[k].value);
+  // summary는 객체라 참조 비교(!==)로는 "되돌렸는데 수정됨"이 남는다 — 값으로 비교한다.
+  const editedKeys = FIELD_ORDER.filter((k) => !isSameValue(values[k], call.fields[k].value));
 
   function registerRef(id: string, el: HTMLDivElement | null) {
     if (el) uttRefs.current.set(id, el);
@@ -131,7 +142,7 @@ export function ReviewPage() {
     }
   }
 
-  function setValue(k: FieldKey, v: string | boolean) {
+  function setValue(k: FieldKey, v: Values[FieldKey]) {
     setValues((prev) => (prev ? { ...prev, [k]: v } : prev));
   }
 
@@ -147,15 +158,16 @@ export function ReviewPage() {
     if (!call || !values) return;
     setSaving(true);
     const reviewSec = Math.max(1, Math.floor((Date.now() - enterTime.current) / 1000));
-    const newFields = {} as CallFields;
+    // 원본 메타(confidence/tier/evidence)는 유지하고 value만 상담사 확정값으로 바꾼다.
+    // 매핑 타입은 union 키로 인덱싱하면 교집합(never)이 되므로, 채울 때만 느슨한 레코드를 쓴다.
+    const newFields = {} as Record<FieldKey, CallFields[FieldKey]>;
     FIELD_ORDER.forEach((k) => {
-      // 원본 메타(confidence/tier/evidence)는 유지, value만 상담사 확정값으로
-      (newFields[k] as CallFields[FieldKey]) = { ...call.fields[k], value: values[k] } as never;
+      newFields[k] = { ...call.fields[k], value: values[k] } as CallFields[FieldKey];
     });
     const followupNeeded = Boolean(values.followup);
     try {
       await approveCall(call.callId, {
-        fields: newFields,
+        fields: newFields as CallFields,
         editedFields: editedKeys,
         reviewSec,
         followupNeeded,

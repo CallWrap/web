@@ -14,6 +14,7 @@ import type {
 import type {
   Call,
   CallFields,
+  SummaryValue,
   CallGrade,
   CallStatus,
   FormFieldData,
@@ -23,13 +24,17 @@ import type {
 
 const EMPTY_STRING_FIELD: FormFieldData<string> = { value: '', confidence: 0, tier: 'low', evidence: [] };
 const EMPTY_BOOL_FIELD: FormFieldData<boolean> = { value: false, confidence: 0, tier: 'low', evidence: [] };
+const EMPTY_SUMMARY: SummaryValue = { title: '', inquiry: '', resolution: '' };
+const EMPTY_SUMMARY_FIELD: FormFieldData<SummaryValue> = {
+  value: EMPTY_SUMMARY, confidence: 0, tier: 'low', evidence: [],
+};
 
 const EMPTY_FIELDS: CallFields = {
   type: EMPTY_STRING_FIELD,
   category: EMPTY_STRING_FIELD,
   subcategory: EMPTY_STRING_FIELD,
   grade: EMPTY_STRING_FIELD,
-  summary: EMPTY_STRING_FIELD,
+  summary: EMPTY_SUMMARY_FIELD,
   followup: EMPTY_BOOL_FIELD,
   faq: EMPTY_BOOL_FIELD,
 };
@@ -94,27 +99,31 @@ function judgmentToStringField(judgment: BackendJudgment<unknown> | null | undef
 }
 
 /**
- * AI-model의 Summary는 {title, inquiry, resolution} 객체다(단일 문자열 아님) — 그대로
- * judgmentToStringField에 넣으면 String(value)가 "[object Object]"를 뱉는다. 세 필드를
- * 사람이 읽을 수 있는 한 덩어리 텍스트로 합쳐서 기존 textarea 필드에 그대로 태운다.
+ * 요약 Judgment → 폼 필드. **합치지 않는다.**
+ * 예전엔 title/inquiry/resolution을 한 덩어리 텍스트로 합쳐 textarea 하나에 태웠는데,
+ * 상담사가 확정하면 그 문자열이 백엔드 JSONB의 구조를 통째로 덮어썼다 —
+ * 그 순간 대기열 제목(summary.value.title)이 사라지고 FAQ 후보 조회
+ * (summary->'value'->>'inquiry')도 null이 됐다. 구조를 그대로 들고 다닌다.
+ *
+ * 확정 이전 데이터 중에는 이미 평문으로 뭉개진 값이 있어서(문자열 케이스) 그것도 읽을 수는 있게 둔다.
  */
-function judgmentToSummaryField(judgment: BackendJudgment<unknown> | null | undefined): FormFieldData<string> {
+function judgmentToSummaryField(
+  judgment: BackendJudgment<unknown> | null | undefined,
+): FormFieldData<SummaryValue> {
   if (!judgment) {
-    return { value: '', confidence: 0, tier: 'low', evidence: [] };
+    return EMPTY_SUMMARY_FIELD;
   }
-  const raw = judgment.value as { title?: string; inquiry?: string; resolution?: string } | string | null;
-  let text = '';
-  if (raw && typeof raw === 'object') {
-    const lines: string[] = [];
-    if (raw.title) lines.push(`[${raw.title}]`);
-    if (raw.inquiry) lines.push(`문의: ${raw.inquiry}`);
-    if (raw.resolution) lines.push(`처리: ${raw.resolution}`);
-    text = lines.join('\n');
-  } else if (typeof raw === 'string') {
-    text = raw;
-  }
+  const raw = judgment.value as Partial<SummaryValue> | string | null;
+  const value: SummaryValue =
+    typeof raw === 'string'
+      ? { ...EMPTY_SUMMARY, inquiry: raw } // 구버전 확정 데이터 — 최소한 내용은 보여준다
+      : {
+          title: raw?.title ?? '',
+          inquiry: raw?.inquiry ?? '',
+          resolution: raw?.resolution ?? '',
+        };
   return {
-    value: text,
+    value,
     confidence: judgment.confidence ?? 0,
     tier: deriveTier(judgment.confidence ?? 0),
     evidence: (judgment.evidenceIndices ?? []).map((i) => `u${i}`),

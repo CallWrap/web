@@ -18,7 +18,7 @@ import { getReviewStats } from '../api/api';
 import { GRADE_MAP } from '../api/adapt';
 import { FaqReviewPanel } from '../components/FaqReviewPanel';
 import { useCallStore } from '../store/callStore';
-import { fieldLabel, fmtDuration, fmtTime, gradeLabel, statusLabel, tierLabel } from '../lib/format';
+import { fieldLabel, fmtDuration, fmtTime, gradeLabel, statusLabel, summaryText, tierLabel } from '../lib/format';
 import { downloadCsv } from '../lib/exportCsv';
 import { ADMIN_TABS, type AdminTab } from '../lib/adminTabs';
 import {
@@ -136,7 +136,7 @@ export function AdminPage() {
     return calls.filter(
       (c) =>
         c.callId.toLowerCase().includes(q) ||
-        c.fields.summary.value.toLowerCase().includes(q) ||
+        summaryText(c.fields.summary.value).toLowerCase().includes(q) ||
         c.fields.type.value.toLowerCase().includes(q),
     );
   }, [calls, query]);
@@ -172,7 +172,7 @@ export function AdminPage() {
         c.fields.type.value,
         c.fields.category.value,
         gradeLabel[c.grade],
-        c.fields.summary.value,
+        summaryText(c.fields.summary.value),
         statusLabel[c.status],
         c.reviewSec ?? '',
       ]),
@@ -536,7 +536,7 @@ export function AdminPage() {
                       <span>{c.fields.type.value || '—'}</span>
                       <span>{c.fields.category.value || '—'}</span>
                       <span className={`badge-pill grade-${c.grade}`}>{gradeLabel[c.grade]}</span>
-                      <span className="ellipsis">{c.fields.summary.value || '요약 없음'}</span>
+                      <span className="ellipsis">{summaryText(c.fields.summary.value) || '요약 없음'}</span>
                       <span className="tier-dots">
                         {tiers.map((t, i) => (
                           <span key={i} className={`dot ${t}`} />
