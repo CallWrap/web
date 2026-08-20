@@ -6,7 +6,8 @@ import { useToastStore } from '../store/toastStore';
 import { TranscriptPanel } from '../components/TranscriptPanel';
 import { TriageForm } from '../components/TriageForm';
 import { GradeBadge } from '../components/StatusBadge';
-import { fmtDuration, fmtTime } from '../lib/format';
+import { findInvalidClassificationField } from '../lib/classificationOptions';
+import { fieldLabel, fmtDuration, fmtTime } from '../lib/format';
 
 /** 필드마다 값 타입이 다르다 (summary는 객체) — 매핑 타입으로 정확히 잡는다. */
 export type Values = { [K in FieldKey]: CallFields[K]['value'] };
@@ -156,6 +157,16 @@ export function ReviewPage() {
 
   async function handleSave() {
     if (!call || !values) return;
+    const invalidField = findInvalidClassificationField({
+      type: String(values.type),
+      category: String(values.category),
+      subcategory: String(values.subcategory),
+      grade: String(values.grade),
+    });
+    if (invalidField) {
+      pushToast(`${fieldLabel[invalidField]} 항목을 선택해 주세요.`);
+      return;
+    }
     setSaving(true);
     const reviewSec = Math.max(1, Math.floor((Date.now() - enterTime.current) / 1000));
     // 원본 메타(confidence/tier/evidence)는 유지하고 value만 상담사 확정값으로 바꾼다.
