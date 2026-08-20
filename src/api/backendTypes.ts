@@ -26,6 +26,8 @@ export interface BackendUtterance {
  */
 export interface BackendReviewSummary {
   reviewId: string;
+  /** 요약 제목. 분석 전이거나 요약이 실패하면 응답에서 아예 빠진다(non_null 직렬화) */
+  title?: string | null;
   status: string;
   retryCount: number;
   grade: BackendJudgment<unknown> | null;

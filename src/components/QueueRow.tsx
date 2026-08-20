@@ -25,12 +25,15 @@ export function QueueRow({ call }: { call: Call }) {
       disabled={analyzing}
       onClick={() => navigate(`/review/${call.callId}`)}
     >
+      {/* 콜 식별은 UUID 앞 8자로 충분하다 — 36자를 다 찍으면 84px 칸에서 여섯 줄로 접힌다.
+          사람이 콜을 구분하는 건 아래 제목이고, id는 문의·장애 추적용 보조 표시다. */}
       <div className="cid">
-        {isMalicious && '⚠ '}#{call.callId}
+        {isMalicious && '⚠ '}#{call.callId.slice(0, 8)}
         <small>{fmtTime(call.startedAt)}</small>
       </div>
 
       <div className="mid">
+        <div className="title">{call.title ?? '(제목 없음)'}</div>
         <div className="line1">
           <StatusBadge status={call.status} />
           <GradeBadge grade={call.grade} />
