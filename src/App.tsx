@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { QueuePage } from './pages/QueuePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { FollowupPage } from './pages/FollowupPage';
+import { CompletedPage } from './pages/CompletedPage';
 import { AdminPage } from './pages/AdminPage';
 import { LoginPage } from './pages/LoginPage';
 import { ToastHost } from './store/toastStore';
@@ -23,6 +24,8 @@ function Sidebar() {
   const calls = useCallStore((s) => s.calls);
   const pending = calls.filter((c) => c.status === 'analyzing' || c.status === 'review').length;
   const followups = calls.filter((c) => c.status === 'followup').length;
+  // 대기열 상단의 "오늘 처리 완료" 카드와 같은 집합 — 후속 처리 건도 확정된 콜이다.
+  const completed = calls.filter((c) => c.status === 'confirmed' || c.status === 'followup').length;
   const analyzing = calls.some((c) => c.status === 'analyzing');
 
   const nav = ({ isActive }: { isActive: boolean }) => `nav-item ${isActive ? 'active' : ''}`;
@@ -35,9 +38,13 @@ function Sidebar() {
           <span className={`icon-badge ${analyzing ? 'alert' : ''}`}>{pending}</span>
         )}
       </NavLink>
-      <NavLink to="/followups" className={nav} aria-label="후속처리">
-        후속처리
+      <NavLink to="/followups" className={nav} aria-label="후속 처리">
+        후속 처리
         {followups > 0 && <span className="icon-badge">{followups}</span>}
+      </NavLink>
+      <NavLink to="/completed" className={nav} aria-label="처리 완료">
+        처리 완료
+        {completed > 0 && <span className="icon-badge">{completed}</span>}
       </NavLink>
 
       <div className="nav-divider" />
@@ -81,6 +88,7 @@ function AuthedApp() {
           <Route path="/queue" element={<QueuePage />} />
           <Route path="/review/:callId" element={<ReviewPage />} />
           <Route path="/followups" element={<FollowupPage />} />
+          <Route path="/completed" element={<CompletedPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/:tab" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/queue" replace />} />

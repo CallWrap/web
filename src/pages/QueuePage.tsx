@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCallStore } from "../store/callStore";
 import { useReviewStream } from "../hooks/useReviewStream";
 import { QueueRow } from "../components/QueueRow";
@@ -6,6 +7,9 @@ import { SealIcon } from "../components/icons";
 
 export function QueuePage() {
   const { calls, loaded, loadError, loadQueue } = useCallStore();
+  const navigate = useNavigate();
+  // "검토 대기"는 이미 이 화면이라 이동할 곳이 없다 — 아래 목록으로 스크롤한다.
+  const queueRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadQueue();
@@ -29,15 +33,18 @@ export function QueuePage() {
   return (
     <div className="content">
       <div className="metric-row">
-        <div className="metric">
+        <button className="metric" onClick={() => navigate("/completed")}>
           <div className="label">오늘 처리 완료</div>
           <div className="value">
             {confirmedCount + followupCount}
             <small> 건</small>
           </div>
           <div className="sub good">후처리 시간 평균 68% 단축</div>
-        </div>
-        <div className="metric">
+        </button>
+        <button
+          className="metric"
+          onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        >
           <div className="label">검토 대기</div>
           <div className="value">
             {pending.length}
@@ -46,15 +53,15 @@ export function QueuePage() {
           <div className="sub">
             {analyzingCount > 0 ? `분석 중 ${analyzingCount}건` : "실시간 반영"}
           </div>
-        </div>
-        <div className="metric">
-          <div className="label">후속처리 필요</div>
+        </button>
+        <button className="metric" onClick={() => navigate("/followups")}>
+          <div className="label">후속 처리 필요</div>
           <div className="value">
             {followupCount}
             <small> 건</small>
           </div>
           <div className="sub">별도 탭에서 관리</div>
-        </div>
+        </button>
       </div>
 
       <div className="info-note">
@@ -66,7 +73,7 @@ export function QueuePage() {
         </span>
       </div>
 
-      <div className="section-head">
+      <div className="section-head" ref={queueRef}>
         <h2>검토 대기열</h2>
         <span className="count">{pending.length}건</span>
       </div>

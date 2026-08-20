@@ -187,7 +187,7 @@ export function ReviewPage() {
     } else {
       pushToast(
         followupNeeded
-          ? `콜 #${savedCallId} 저장됨 · 후속처리 탭으로 이동`
+          ? `콜 #${savedCallId} 저장됨 · 후속 처리 탭으로 이동`
           : `콜 #${savedCallId} 저장됨 · 검토 완료`,
       );
       navigate('/queue');

@@ -35,7 +35,7 @@ export const statusLabel: Record<CallStatus, string> = {
   analyzing: '분석 중',
   review: '검토 대기',
   confirmed: '완료',
-  followup: '후속필요',
+  followup: '후속 필요',
   failed: '처리 실패',
 };
 
@@ -57,6 +57,6 @@ export const fieldLabel: Record<string, string> = {
   subcategory: '상담분류(소분류)',
   grade: '상담등급',
   summary: '문의·처리내용 요약',
-  followup: '후속처리',
+  followup: '후속 처리',
   faq: 'FAQ 반영 필요',
 };

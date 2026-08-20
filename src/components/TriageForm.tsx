@@ -54,7 +54,7 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
     const f = fields[key];
     const value = values[key];
     if (key === 'followup' || key === 'faq') {
-      const label = key === 'followup' ? '후속처리가 필요합니다' : 'FAQ/지식베이스에 반영이 필요합니다';
+      const label = key === 'followup' ? '후속 처리가 필요합니다' : 'FAQ/지식베이스에 반영이 필요합니다';
       return (
         <div className="check-row">
           <input
