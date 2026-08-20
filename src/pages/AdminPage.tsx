@@ -18,7 +18,7 @@ import { getReviewStats } from '../api/api';
 import { GRADE_MAP } from '../api/adapt';
 import { FaqReviewPanel } from '../components/FaqReviewPanel';
 import { useCallStore } from '../store/callStore';
-import { fieldLabel, fmtDuration, fmtTime, gradeLabel, statusLabel, summaryText, tierLabel } from '../lib/format';
+import { fieldLabel, fmtCallNo, fmtDuration, fmtTime, gradeLabel, statusLabel, summaryText, tierLabel } from '../lib/format';
 import { downloadCsv } from '../lib/exportCsv';
 import { ADMIN_TABS, type AdminTab } from '../lib/adminTabs';
 import {
@@ -530,7 +530,7 @@ export function AdminPage() {
                       aria-expanded={open}
                     >
                       <span className="cid">
-                        {open ? '▾' : '▸'} #{c.callId}
+                        {open ? '▾' : '▸'} {fmtCallNo(c.callNo)}
                         <small>{fmtTime(c.startedAt)}</small>
                       </span>
                       <span>{c.fields.type.value || '—'}</span>
@@ -656,7 +656,7 @@ export function AdminPage() {
               const worst = worstSubcategory(call);
               return (
                 <div key={call.callId} className="quality-row">
-                  <span className="cid">{call.callId}</span>
+                  <span className="cid">{call.callId}</span>  {/* 상담품질 탭은 아직 mock 데이터라 접수 순번이 없다 */}
                   <span className={`tnum total ${total < 70 ? 'low' : ''}`}>{total}</span>
                   {QUALITY_CATEGORIES.map((cat) => (
                     <span key={cat.key} className="tnum">

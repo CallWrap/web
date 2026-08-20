@@ -26,6 +26,8 @@ export interface BackendUtterance {
  */
 export interface BackendReviewSummary {
   reviewId: string;
+  /** 접수 순번. 상담사가 콜을 부르는 번호(화면엔 001처럼 3자리) */
+  callNo: number;
   /** 요약 제목. 분석 전이거나 요약이 실패하면 응답에서 아예 빠진다(non_null 직렬화) */
   title?: string | null;
   status: string;
@@ -49,6 +51,7 @@ export interface BackendReviewListResponse {
 /** GET /api/reviews/{id} */
 export interface BackendReviewDetail {
   reviewId: string;
+  callNo: number;
   status: string;
   callStartedAt: string | null;
   callDurationSec: number | null;
