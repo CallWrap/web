@@ -368,7 +368,7 @@ export function AdminPage() {
 
           <div className="dense-head" style={{ marginTop: 26 }}>
             <h2>규칙 기반 vs LLM 자동 추출</h2>
-            <p>같은 전사·같은 골든셋 정답으로 채점 — 판단형(등급·후속처리)과 분류형(유형·분류)을 나눠서 비교합니다.</p>
+            <p>같은 전사·같은 골든셋 정답으로 채점 — 판단형(등급·후속 처리)과 분류형(유형·분류)을 나눠서 비교합니다.</p>
           </div>
           <div className="rulecmp-grid">
             <div className="rulecmp-card">
