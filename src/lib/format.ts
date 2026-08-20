@@ -18,6 +18,11 @@ export function summaryText(s: SummaryValue | null | undefined): string {
     .join('\n');
 }
 
+/** 접수 순번 → 화면 표기. 세 자리로 채우고, 1000번을 넘으면 자연스럽게 네 자리가 된다. */
+export function fmtCallNo(no: number | null | undefined): string {
+  return no == null ? '—' : `#${String(no).padStart(3, '0')}`;
+}
+
 export function fmtTime(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);

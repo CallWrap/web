@@ -1,7 +1,7 @@
 import { useCallStore } from '../store/callStore';
 import { GradeBadge } from '../components/StatusBadge';
 import { EmptyTrayIcon } from '../components/icons';
-import { fmtTime, summaryText } from '../lib/format';
+import { fmtCallNo, fmtTime, summaryText } from '../lib/format';
 
 export function FollowupPage() {
   const calls = useCallStore((s) => s.calls);
@@ -32,7 +32,7 @@ export function FollowupPage() {
           return (
             <div className="followup-card" key={c.callId}>
               <div className="fc-head">
-                <span className="cid">#{c.callId}</span>
+                <span className="cid">{fmtCallNo(c.callNo)}</span>
                 <GradeBadge grade={c.grade} />
                 <span className="sum">{summaryText(c.fields.summary.value) || '요약 없음'}</span>
                 <span className="count" style={{ marginLeft: 'auto' }}>

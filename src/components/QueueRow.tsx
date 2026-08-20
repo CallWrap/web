@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Call, Tier } from '../api/types';
-import { fmtTime } from '../lib/format';
+import { fmtCallNo, fmtTime } from '../lib/format';
 import { GradeBadge, StatusBadge } from './StatusBadge';
 
 /** 확신(high) 항목 개수 + 5개 항목의 신뢰도 지문. 목록 API는 필드를 안 줘서 placeholder(call.isSummary)면 못 그린다. */
@@ -25,10 +25,10 @@ export function QueueRow({ call }: { call: Call }) {
       disabled={analyzing}
       onClick={() => navigate(`/review/${call.callId}`)}
     >
-      {/* 콜 식별은 UUID 앞 8자로 충분하다 — 36자를 다 찍으면 84px 칸에서 여섯 줄로 접힌다.
-          사람이 콜을 구분하는 건 아래 제목이고, id는 문의·장애 추적용 보조 표시다. */}
+      {/* 접수 순번을 보여준다. UUID는 사람이 부를 수 없고(36자), 사보원 요청번호는 형식이
+          아직 안 정해져서 표시용으로 못 쓴다. 상담사끼리는 "3번 콜"로 부르면 된다. */}
       <div className="cid">
-        {isMalicious && '⚠ '}#{call.callId.slice(0, 8)}
+        {isMalicious && '⚠ '}{fmtCallNo(call.callNo)}
         <small>{fmtTime(call.startedAt)}</small>
       </div>
 
