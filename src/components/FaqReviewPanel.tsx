@@ -11,6 +11,11 @@ const STATUS_LABEL: Record<BackendFaqEntry['status'], string> = {
   DISCARDED: '반려됨',
 };
 
+/** 근거 콜이 이 값 이상 누적된 FAQ는 "많이 문의된" 것으로 보고 배지로 추천 표시한다.
+ * 목록 자체는 서버(GET /api/faq-entries)가 이미 sourceCallCount 내림차순으로 정렬해서 주므로,
+ * 여기서는 그중 어디까지가 "추천"인지 시각적으로 구분만 한다. */
+const RECOMMEND_THRESHOLD = 5;
+
 /**
  * EXAONE이 needs_faq=true로 쌓인 콜을 소분류별로 합성한 FAQ 초안 검수 화면.
  * DRAFT는 반드시 사람이 승인해야 PUBLISHED가 된다 — TriageForm의 "AI 확신도 낮으면
@@ -171,6 +176,11 @@ export function FaqReviewPanel() {
                       {STATUS_LABEL[entry.status]}
                     </span>
                     <span className="hint">근거 콜 {entry.sourceCallCount}건</span>
+                    {entry.sourceCallCount >= RECOMMEND_THRESHOLD && (
+                      <span className="tier-badge high" title={`근거 콜 ${RECOMMEND_THRESHOLD}건 이상 누적 — 우선 검수 추천`}>
+                        추천
+                      </span>
+                    )}
                     <span className="spacer" />
                     <span className="hint">{new Date(entry.generatedAt).toLocaleString('ko-KR')}</span>
                   </div>
