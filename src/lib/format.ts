@@ -1,7 +1,21 @@
 import type { CallGrade, CallStatus, SummaryValue, Tier } from '../api/types';
 
+/**
+ * 값이 아직 없을 때 보여줄 문구. 절대 '—'나 '(없음)'류의 무의미한 자리표시를 쓰지 않는다 —
+ * 최소한 "왜 비어 있는지"가 읽혀야 한다. 새 화면을 추가할 때도 이 상수를 통해서만 빈 값을 표시한다.
+ */
+export const EMPTY = {
+  callNo: '접수 처리 중',
+  time: '시각 미기록',
+  duration: '검토 진행 중',
+  title: '제목 정리 중',
+  summary: '요약 정리 중',
+  choiceValue: '선택 필요',
+  fieldValue: '입력 필요',
+} as const;
+
 export function fmtDuration(sec: number | null | undefined): string {
-  if (sec == null) return '—';
+  if (sec == null) return EMPTY.duration;
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}분 ${s.toString().padStart(2, '0')}초`;
@@ -20,11 +34,11 @@ export function summaryText(s: SummaryValue | null | undefined): string {
 
 /** 접수 순번 → 화면 표기. 세 자리로 채우고, 1000번을 넘으면 자연스럽게 네 자리가 된다. */
 export function fmtCallNo(no: number | null | undefined): string {
-  return no == null ? '—' : `#${String(no).padStart(3, '0')}`;
+  return no == null ? EMPTY.callNo : `#${String(no).padStart(3, '0')}`;
 }
 
 export function fmtTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return EMPTY.time;
   const d = new Date(iso);
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 }

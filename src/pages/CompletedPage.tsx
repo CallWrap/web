@@ -1,7 +1,7 @@
 import { useCallStore } from '../store/callStore';
 import { GradeBadge } from '../components/StatusBadge';
 import { EmptyTrayIcon } from '../components/icons';
-import { fmtCallNo, fmtTime, summaryText } from '../lib/format';
+import { EMPTY, fmtCallNo, fmtTime, summaryText } from '../lib/format';
 
 /*
  * 확정(CONFIRMED)된 콜 목록. 대기열 상단의 "오늘 처리 완료" 카드와 같은 집합을 본다 —
@@ -37,7 +37,7 @@ export function CompletedPage() {
               <GradeBadge grade={c.grade} />
               {/* 목록 API는 요약 본문을 안 준다(대용량 JSONB를 목록에 안 싣는 설계) — 제목을 먼저 쓰고,
                   상세를 이미 받아온 콜이면 요약 본문으로 대체한다. */}
-              <span className="sum">{c.title || summaryText(c.fields.summary.value) || '요약 없음'}</span>
+              <span className="sum">{c.title || summaryText(c.fields.summary.value) || EMPTY.summary}</span>
               <span className="count" style={{ marginLeft: 'auto' }}>
                 {fmtTime(c.startedAt)}
               </span>

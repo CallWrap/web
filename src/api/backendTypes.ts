@@ -126,7 +126,9 @@ export interface BackendFaqBatchResult {
 /**
  * GET /api/reviews/stats — 관리자 대시보드 개요용 집계. DB에서 GROUP BY/AVG로 계산해서 온다.
  * gradeCounts 키는 Judgment.value 그대로("일반"/"칭찬콜"/"악성콜"/"미판정"), typeCounts는
- * 상담유형 라벨("미분류" 포함) — 아직 SR 모델 미연동이라 대부분 ETC로 잡힌다.
+ * 상담유형 라벨("미분류" 포함) — sr_type.py 모델이 analyze()에 병합되어 실제 분류가 채워진다
+ * (2026-08-20 기준). hourlyThroughput은 오늘자 시간대별 처리 건수, maliciousByCounselor는
+ * 상담사별 악성콜 건수 — 둘 다 native query GROUP BY 집계.
  */
 export interface BackendReviewStats {
   totalCalls: number;
@@ -134,6 +136,8 @@ export interface BackendReviewStats {
   gradeCounts: Record<string, number>;
   typeCounts: Record<string, number>;
   avgReviewSec: number | null;
+  hourlyThroughput: Record<string, number>;
+  maliciousByCounselor: Record<string, number>;
 }
 
 export interface BackendErrorResponse {

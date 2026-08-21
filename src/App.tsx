@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { QueuePage } from './pages/QueuePage';
 import { ReviewPage } from './pages/ReviewPage';
@@ -11,11 +11,29 @@ import { useCallStore } from './store/callStore';
 import { useAuthStore } from './store/authStore';
 import { ADMIN_TABS } from './lib/adminTabs';
 
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function formatToday(d: Date): string {
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
+}
+
+/** 자정을 넘기면 날짜가 자동으로 바뀌도록 1분 간격으로 재계산한다.
+ * 상담사가 화면을 새로고침하지 않고 밤을 넘겨 켜 두는 경우를 위한 것이다. */
+function useToday(): string {
+  const [today, setToday] = useState(() => formatToday(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => setToday(formatToday(new Date())), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return today;
+}
+
 function Topbar() {
+  const today = useToday();
   return (
     <div className="topbar">
       <div className="spacer" />
-      <span className="today">2026년 7월 22일 (수)</span>
+      <span className="today">{today}</span>
     </div>
   );
 }

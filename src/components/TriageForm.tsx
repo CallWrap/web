@@ -23,11 +23,12 @@ const tierIcon: Record<Tier, string> = { high: '✓', medium: '◈', low: '✎' 
 
 /**
  * FieldKey → 이 필드를 채우는 AI 모듈명(들). analysis.failures에 이 이름이 있으면
- * "확신도가 낮음"이 아니라 "이 항목 자체가 아직 AI에 연결 안 됨"이라는 뜻이라 문구를 다르게 보여준다.
- * type(유형)은 상담유형 전용 SR모델이 아직 analyze()에 안 붙어서(별도 레포/리뷰 진행 중) 항상
- * ETC 고정값만 나온다 — AI-model이 failures에 반영해주면(예: "classify_type") 그 키를 여기 추가한다.
+ * 해당 모듈이 이번 통화에서 판정에 실패했다는 뜻이다 (모델 부재·낮은 신뢰도 등 원인은 다양함).
+ * 사용자에게 보여줄 문구는 원인을 구분하지 않는다 — 이 맵은 로그·관리자용 내부 추적 목적으로만 쓴다.
+ * type(SR유형)은 sr_type.py 모델이 analyze()에 병합 완료 (2026-08-20 기준).
  */
 const FIELD_FAILURE_MODULES: Partial<Record<FieldKey, string[]>> = {
+  type: ['classify_type'],
   category: ['classify_category'],
   subcategory: ['classify_subcategory', 'subcategory_hierarchy'],
   grade: ['grade'],
@@ -36,6 +37,8 @@ const FIELD_FAILURE_MODULES: Partial<Record<FieldKey, string[]>> = {
   faq: ['needs_faq'],
 };
 
+// isUnimplemented()는 현재 화면 렌더링에는 쓰지 않는다 (사용자에게는 tier=low를 한 가지 문구로만
+// 보여준다). failures 필드별 매핑 자체는 로그·관리자 디버깅용으로 남겨둔다.
 function isUnimplemented(key: FieldKey, failures: string[]): boolean {
   return (FIELD_FAILURE_MODULES[key] ?? []).some((m) => failures.includes(m));
 }
@@ -209,12 +212,7 @@ export function TriageForm({ fields, values, editedKeys, failures, onChange, onE
           )}
         </div>
         <div className="fbody">
-          {f.tier === 'low' && isUnimplemented(key, failures) && (
-            <div className="low-hint unimplemented">
-              <span>🛠</span> 이 항목은 아직 AI 분석에 연결되지 않았습니다. 상담사가 직접 입력해 주세요.
-            </div>
-          )}
-          {f.tier === 'low' && !isUnimplemented(key, failures) && (
+          {f.tier === 'low' && (
             <div className="low-hint">
               <span>✎</span> AI 신뢰도가 낮습니다. 상담사가 직접 판단해 입력해 주세요.
             </div>
