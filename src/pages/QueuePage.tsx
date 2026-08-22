@@ -17,7 +17,7 @@ export function QueuePage() {
 
   // 상담이 끝나서 상태가 바뀌거나(분석 중→검토 대기) 다른 상담사가 확정해서 항목이
   // 빠지는 걸 새로고침 없이 실시간으로 반영한다.
-  useReviewStream();
+  const { connected } = useReviewStream();
 
   // 악성콜(감정노동 보호 대상)을 맨 위로 — 상담원이 대기열을 훑을 때 가장 먼저 눈에 들어와야 함
   const pending = calls
@@ -51,7 +51,11 @@ export function QueuePage() {
             <small> 건</small>
           </div>
           <div className="sub">
-            {analyzingCount > 0 ? `분석 중 ${analyzingCount}건` : "실시간 반영"}
+            {!connected
+              ? "실시간 연결 끊김 · 재연결 중…"
+              : analyzingCount > 0
+                ? `분석 중 ${analyzingCount}건`
+                : "실시간 반영"}
           </div>
         </button>
         <button className="metric" onClick={() => navigate("/followups")}>

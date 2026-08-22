@@ -54,6 +54,16 @@ interface RequestOptions {
   skipAuthRetry?: boolean;
 }
 
+/** 서버 다운·DNS 실패 등 fetch 자체가 던지는 네트워크 예외를, 브라우저 원문(Failed to fetch 등) 대신
+ * 한국어 ApiError로 통일한다 — 호출부는 서버 에러와 동일하게 err.message만 보면 된다. */
+async function safeFetch(doFetch: () => Promise<Response>): Promise<Response> {
+  try {
+    return await doFetch();
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.');
+  }
+}
+
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
 
@@ -68,12 +78,12 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
 
-  let res = await doFetch();
+  let res = await safeFetch(doFetch);
 
   if (res.status === 401 && !options.skipAuthRetry) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      res = await doFetch();
+      res = await safeFetch(doFetch);
     }
   }
 

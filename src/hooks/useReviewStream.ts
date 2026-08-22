@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCallStore } from '../store/callStore';
 
 // 서버(Spring)가 콜 상태 변경을 SSE로 밀어준다 — 대기열을 몇 초마다 다시 긁어오는 폴링 대신,
@@ -7,9 +7,12 @@ import { useCallStore } from '../store/callStore';
 // 네이티브 EventSource는 Authorization 헤더를 못 보낸다(브라우저 표준 제약). 지금은
 // SecurityConfig가 데모 단계라 permitAll이라 문제가 안 되지만, 실제 인가를 붙이면
 // 쿠키 기반 인증으로 바꾸거나 fetch-event-source 같은 라이브러리로 교체해야 한다.
-// 연결이 끊기면 EventSource가 브라우저 표준 동작으로 알아서 재연결을 시도한다.
-export function useReviewStream() {
+// 연결이 끊기면 EventSource가 브라우저 표준 동작으로 알아서 재연결을 시도한다 —
+// 재연결 자체는 자동이지만, 그 사이엔 실시간 반영이 멈춘다는 걸 화면에 보여줘야 해서
+// connected 상태를 반환한다.
+export function useReviewStream(): { connected: boolean } {
   const refreshQueue = useCallStore((s) => s.refreshQueue);
+  const [connected, setConnected] = useState(true);
 
   useEffect(() => {
     const source = new EventSource('/api/reviews/stream', { withCredentials: true });
@@ -17,7 +20,11 @@ export function useReviewStream() {
     source.addEventListener('call-status-changed', () => {
       refreshQueue();
     });
+    source.addEventListener('open', () => setConnected(true));
+    source.addEventListener('error', () => setConnected(false));
 
     return () => source.close();
   }, [refreshQueue]);
+
+  return { connected };
 }
