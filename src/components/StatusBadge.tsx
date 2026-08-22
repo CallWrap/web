@@ -21,7 +21,8 @@ export function StatusBadge({ status }: { status: CallStatus }) {
 }
 
 export function GradeBadge({ grade }: { grade: CallGrade }) {
-  if (grade === 'normal') return null;
+  // 일반/판정 대기는 특별히 알릴 게 없으니 배지 자체를 안 그린다 — 악성·칭찬만 눈에 띄면 된다.
+  if (grade !== 'malicious' && grade !== 'praise') return null;
   const cls = grade === 'malicious' ? 'grade-malicious' : 'grade-praise';
   const icon = grade === 'malicious' ? '⚠' : '★';
   return (

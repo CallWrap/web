@@ -13,8 +13,10 @@ export type CallStatus =
   | 'followup'
   | 'failed';
 
-/** 상담 등급 (감정노동/악성콜 분류) */
-export type CallGrade = 'normal' | 'praise' | 'malicious';
+/** 상담 등급 (감정노동/악성콜 분류). pending은 AI가 아직 등급을 판정하지 않은 상태 —
+ * "일반"으로 잠식해서 보여주면 실제로 판정된 것처럼 보여 오해를 준다(백엔드 gradeCounts의
+ * "미판정" 키와 대응). */
+export type CallGrade = 'normal' | 'praise' | 'malicious' | 'pending';
 
 /** AI 신뢰도 tier. confidence에서 프론트가 파생시킨다 (deriveTier). */
 export type Tier = 'high' | 'medium' | 'low';
