@@ -93,18 +93,16 @@ export function AdminPage() {
   const typeColors = ['#4f46e5', '#0891b2', '#d97706', '#be185d', '#059669', '#7c3aed', '#0284c7', '#65a30d'];
 
   // 시간대별 처리량 — 오늘 자정 이후 접수된 콜을 시간별로 센 실측 집계 (/api/reviews/stats).
-  const hourlyThroughput = stats
-    ? Object.entries(stats.hourlyThroughput)
-        .map(([h, n]) => ({ h: `${h}시`, n, hourNum: Number(h) }))
-        .sort((a, b) => a.hourNum - b.hourNum)
-    : [];
+  // stats?.hourlyThroughput ?? {} — 백엔드 계약이 어긋나 필드가 안 오는 경우에도 전체 페이지가
+  // 죽지 않게 방어한다(Object.entries(undefined)는 예외를 던진다).
+  const hourlyThroughput = Object.entries(stats?.hourlyThroughput ?? {})
+    .map(([h, n]) => ({ h: `${h}시`, n, hourNum: Number(h) }))
+    .sort((a, b) => a.hourNum - b.hourNum);
 
   // 상담사별 악성콜 밸런싱 — 상담사 이름별 악성콜 확정 건수 실측 집계.
-  const agentBalance = stats
-    ? Object.entries(stats.maliciousByCounselor)
-        .map(([name, n]) => ({ name, n }))
-        .sort((a, b) => b.n - a.n)
-    : [];
+  const agentBalance = Object.entries(stats?.maliciousByCounselor ?? {})
+    .map(([name, n]) => ({ name, n }))
+    .sort((a, b) => b.n - a.n);
 
   // 검토 대기 중 — AI 분석은 끝났지만 상담사 확인이 아직 안 된 콜.
   const inReview = calls.filter((c) => c.status === 'review' || c.status === 'analyzing').length;
