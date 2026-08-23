@@ -12,12 +12,13 @@ import {
   YAxis,
 } from 'recharts';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { FieldKey } from '../api/types';
+import type { Call, FieldKey } from '../api/types';
 import type { BackendReviewStats } from '../api/backendTypes';
 import { getReviewStats } from '../api/api';
 import { GRADE_MAP } from '../api/adapt';
 import { FaqReviewPanel } from '../components/FaqReviewPanel';
 import { PendingMetric } from '../components/PendingMetric';
+import { MetricDrawer } from '../components/MetricDrawer';
 import { useCallStore } from '../store/callStore';
 import { EMPTY, fieldLabel, fmtCallNo, fmtDuration, fmtTime, gradeLabel, statusLabel, summaryText, tierLabel } from '../lib/format';
 import { downloadCsv } from '../lib/exportCsv';
@@ -25,7 +26,6 @@ import { ADMIN_TABS, type AdminTab } from '../lib/adminTabs';
 import { QUALITY_CATEGORIES, QUALITY_SUBCATEGORIES } from '../mock/qualityScores';
 import { MEASUREMENT_LABEL, GRADE_MODEL_COMPARISON, GRADE_MODEL_NOTE, PIPELINE_METRICS } from '../data/measuredMetrics';
 
-const BASELINE_REVIEW_SEC = 210; // 기존 수기 후처리 평균 3분 30초
 const LEDGER_FIELDS: FieldKey[] = ['type', 'category', 'grade', 'summary', 'followup'];
 
 export function AdminPage() {
@@ -62,9 +62,6 @@ export function AdminPage() {
     : processedWithTime.length > 0
       ? Math.round(totalReviewSec / processedWithTime.length)
       : 0;
-  const savingPct =
-    avgReview > 0 ? Math.round((1 - avgReview / BASELINE_REVIEW_SEC) * 100) : 68;
-
   const maliciousCount = stats
     ? gradeCountFrom(stats.gradeCounts, 'malicious')
     : calls.filter((c) => c.grade === 'malicious').length;
@@ -105,10 +102,30 @@ export function AdminPage() {
     .sort((a, b) => b.n - a.n);
 
   // 검토 대기 중 — AI 분석은 끝났지만 상담사 확인이 아직 안 된 콜.
-  const inReview = calls.filter((c) => c.status === 'review' || c.status === 'analyzing').length;
+  const inReviewCalls = calls.filter((c) => c.status === 'review' || c.status === 'analyzing');
+  const inReview = inReviewCalls.length;
+  const maliciousCalls = calls.filter((c) => c.grade === 'malicious');
 
   const avgMM = Math.floor(avgReview / 60);
   const avgSS = (avgReview % 60).toString().padStart(2, '0');
+
+  // 개요 카드 클릭 → 그 숫자를 이룬 콜 목록을 사이드 드로어로. calls는 최근 100건 캡이 있어서
+  // 카드 상단 숫자(DB 전체 집계)와 드로어에 뜨는 실제 행 수가 다를 수 있다 — note로 그 사실을 밝힌다.
+  const [drawerFilter, setDrawerFilter] = useState<null | 'processed' | 'avgReview' | 'malicious' | 'inReview'>(null);
+  const DRAWER_CAP_NOTE = '최근 100건 중에서 찾은 목록입니다 · 카드 숫자는 DB 전체 집계입니다.';
+  const DRAWER_CONFIG: Record<NonNullable<typeof drawerFilter>, { title: string; calls: Call[]; note: string }> = {
+    processed: { title: '오늘 처리 건수', calls: processed, note: `확정 + 후속 처리 포함 · ${DRAWER_CAP_NOTE}` },
+    avgReview: { title: '평균 검토 시간에 포함된 콜', calls: processedWithTime, note: `검토 소요 시간이 기록된 콜만 · ${DRAWER_CAP_NOTE}` },
+    malicious: { title: '악성콜로 확정된 콜', calls: maliciousCalls, note: DRAWER_CAP_NOTE },
+    inReview: { title: '검토 대기 중인 콜', calls: inReviewCalls, note: `AI 분석 완료 후 상담사 확인 대기 · ${DRAWER_CAP_NOTE}` },
+  };
+
+  function openInLedger(callId: string) {
+    setDrawerFilter(null);
+    setQuery(''); // 이전 검색어가 남아있으면 filteredCalls에서 이 콜이 걸러져 안 보일 수 있다
+    setOpenId(callId);
+    navigate('/admin/ledger');
+  }
 
   const filteredCalls = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,7 +140,7 @@ export function AdminPage() {
 
   function handleExportLedger() {
     downloadCsv(
-      `aftercall-상담대장-${new Date().toISOString().slice(0, 10)}.csv`,
+      `callwrap-상담대장-${new Date().toISOString().slice(0, 10)}.csv`,
       ['통화ID', '상담유형', '상담분류', '상담등급', '요약', '상태', '검토시간(초)'],
       filteredCalls.map((c) => [
         c.callId,
@@ -169,25 +186,15 @@ export function AdminPage() {
       {/* ═══════ 개요 ═══════ */}
       {tab === 'overview' && (
         <>
-          <div className="improve-banner">
-            <div className="improve-card">
-              <div className="label">후처리 시간 단축</div>
-              <div className="big">
-                {savingPct}<small>%</small>
-              </div>
-              <div className="sub">
-                수기 3:30 → 자동화 후 {avgReview > 0 ? `${avgMM}:${avgSS}` : EMPTY.duration}
-              </div>
-            </div>
-          </div>
-
           <div className="metric-row four">
-            <div className="metric">
+            <button className="metric" onClick={() => setDrawerFilter('processed')}>
               <div className="label">오늘 처리 건수</div>
-              <div className="value">{processed.length || calls.length}</div>
-              <div className="sub">확정 + 후속 처리 포함</div>
-            </div>
-            <div className="metric">
+              {/* calls.length로 fallback하면 안 됨 — 확정된 게 0건이어도 "로드된 콜 전체 수"를
+                  보여주게 돼서 대기열 화면의 "오늘 처리 완료"(같은 계산식)와 값이 어긋난다. */}
+              <div className="value">{processed.length}</div>
+              <div className="sub">확정 + 후속 처리 포함 · 클릭해서 목록 보기</div>
+            </button>
+            <button className="metric" onClick={() => setDrawerFilter('avgReview')}>
               <div className="label">평균 검토 시간</div>
               <div className="value">
                 {avgReview > 0 ? (
@@ -198,24 +205,24 @@ export function AdminPage() {
                   EMPTY.duration
                 )}
               </div>
-              <div className="sub good">기존 대비 {savingPct}% 단축 (수기 3:30)</div>
-            </div>
-            <div className="metric">
+              <div className="sub">확정 + 후속 처리 콜 기준 · 클릭해서 목록 보기</div>
+            </button>
+            <button className="metric" onClick={() => setDrawerFilter('malicious')}>
               <div className="label">악성콜 발생률</div>
               <div className="value">
                 {maliciousRate}
                 <small>%</small>
               </div>
-              <div className="sub warn">감정노동 보호 {maliciousCount}건 발생</div>
-            </div>
-            <div className="metric">
+              <div className="sub warn">감정노동 보호 {maliciousCount}건 발생 · 클릭해서 목록 보기</div>
+            </button>
+            <button className="metric" onClick={() => setDrawerFilter('inReview')}>
               <div className="label">검토 대기 중</div>
               <div className="value">
                 {inReview}
                 <small> 건</small>
               </div>
-              <div className="sub">AI 분석 완료 후 상담사 확인 대기</div>
-            </div>
+              <div className="sub">AI 분석 완료 후 상담사 확인 대기 · 클릭해서 목록 보기</div>
+            </button>
           </div>
 
           <div className="info-note">
@@ -586,6 +593,16 @@ export function AdminPage() {
 
       {/* ═══════ FAQ 검수 ═══════ */}
       {tab === 'faq' && <FaqReviewPanel />}
+
+      {drawerFilter && (
+        <MetricDrawer
+          title={DRAWER_CONFIG[drawerFilter].title}
+          note={DRAWER_CONFIG[drawerFilter].note}
+          calls={DRAWER_CONFIG[drawerFilter].calls}
+          onSelect={openInLedger}
+          onClose={() => setDrawerFilter(null)}
+        />
+      )}
     </div>
   );
 }

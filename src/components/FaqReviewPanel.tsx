@@ -99,14 +99,17 @@ export function FaqReviewPanel() {
     }
   }
 
-  async function handleDiscard(id: string) {
-    setBusyId(id);
+  async function handleDiscard(entry: BackendFaqEntry) {
+    // 이미 게시된 글에 이 버튼을 누르면 "반려"가 아니라 "게시 취소"다 — 검수 전 초안을
+    // 거절하는 것과 지식베이스에 이미 나가 있는 걸 내리는 건 결과가 다르니 문구도 갈라야 한다.
+    const isRetract = entry.status === 'PUBLISHED';
+    setBusyId(entry.id);
     try {
-      const updated = await discardFaqEntry(id);
-      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
-      pushToast('FAQ 초안을 반려했습니다');
+      const updated = await discardFaqEntry(entry.id);
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? updated : e)));
+      pushToast(isRetract ? 'FAQ 게시를 취소했습니다' : 'FAQ 초안을 반려했습니다');
     } catch {
-      pushToast('반려 처리에 실패했습니다');
+      pushToast(isRetract ? '게시 취소에 실패했습니다' : '반려 처리에 실패했습니다');
     } finally {
       setBusyId(null);
     }
@@ -182,7 +185,11 @@ export function FaqReviewPanel() {
                       </span>
                     )}
                     <span className="spacer" />
-                    <span className="hint">{new Date(entry.generatedAt).toLocaleString('ko-KR')}</span>
+                    <span className="hint">
+                      {entry.status === 'PUBLISHED' && entry.publishedAt
+                        ? `게시 ${new Date(entry.publishedAt).toLocaleString('ko-KR')}`
+                        : `생성 ${new Date(entry.generatedAt).toLocaleString('ko-KR')}`}
+                    </span>
                   </div>
 
                   {isEditing ? (
@@ -215,17 +222,22 @@ export function FaqReviewPanel() {
                     </>
                   )}
 
-                  {!isEditing && entry.status === 'DRAFT' && (
+                  {/* DISCARDED는 되돌릴 API가 없어 액션을 안 보여준다. DRAFT/PUBLISHED는 둘 다
+                      "수정"이 가능하고(백엔드가 상태로 막지 않음), 나머지 한 버튼만 상태에 따라
+                      갈린다 — 검수 전 초안 거절(반려) vs 이미 나간 글 내리기(게시 취소). */}
+                  {!isEditing && entry.status !== 'DISCARDED' && (
                     <div className="floating-toolbar" style={{ position: 'static', marginTop: 12, boxShadow: 'none', padding: 0 }}>
                       <button className="btn ghost sm" onClick={() => startEdit(entry)} disabled={busy}>
                         수정
                       </button>
-                      <button className="btn ghost sm" onClick={() => handleDiscard(entry.id)} disabled={busy}>
-                        반려
+                      <button className="btn ghost sm" onClick={() => handleDiscard(entry)} disabled={busy}>
+                        {busy ? '처리 중…' : entry.status === 'PUBLISHED' ? '게시 취소' : '반려'}
                       </button>
-                      <button className="btn primary sm" onClick={() => handlePublish(entry.id)} disabled={busy}>
-                        {busy ? '처리 중…' : '승인'}
-                      </button>
+                      {entry.status === 'DRAFT' && (
+                        <button className="btn primary sm" onClick={() => handlePublish(entry.id)} disabled={busy}>
+                          {busy ? '처리 중…' : '승인'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

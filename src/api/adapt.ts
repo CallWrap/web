@@ -47,10 +47,13 @@ export function deriveTier(confidence: number): 'high' | 'medium' | 'low' {
 }
 
 // AdminPage가 /api/reviews/stats의 gradeCounts(한글 라벨) 키를 web CallGrade로 옮길 때도 쓴다.
+// "미판정"은 백엔드가 아직 등급 분류를 안 한(또는 못 한) 콜에 실제로 붙이는 값이다 — 'normal'로
+// 뭉개면 안 되고 별도의 pending으로 옮긴다.
 export const GRADE_MAP: Record<string, CallGrade> = {
   일반: 'normal',
   칭찬콜: 'praise',
   악성콜: 'malicious',
+  미판정: 'pending',
 };
 
 const SPEAKER_MAP: Record<BackendSpeaker, SpeakerRole> = {
@@ -82,8 +85,10 @@ export function mapCallStatus(backendStatus: string, needsFollowup?: boolean): C
 }
 
 function mapGrade(judgment: BackendJudgment<unknown> | null | undefined): CallGrade {
-  if (!judgment) return 'normal';
-  return GRADE_MAP[String(judgment.value)] ?? 'normal';
+  // AI가 아직 등급을 안 매겼으면 'normal'이 아니라 'pending' — "일반으로 판정됨"과
+  // "아직 판정 안 됨"은 다른 사실이고, UI가 그 차이를 숨기면 안 된다.
+  if (!judgment) return 'pending';
+  return GRADE_MAP[String(judgment.value)] ?? 'pending';
 }
 
 function judgmentToStringField(judgment: BackendJudgment<unknown> | null | undefined): FormFieldData<string> {

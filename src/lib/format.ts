@@ -57,6 +57,7 @@ export const gradeLabel: Record<CallGrade, string> = {
   normal: '일반',
   praise: '칭찬콜',
   malicious: '악성콜',
+  pending: '판정 대기',
 };
 
 export const tierLabel: Record<Tier, string> = {
