@@ -80,6 +80,8 @@ export interface Call {
   durationSec: number | null; // 백엔드가 아직 안 줌 — null 가능
   status: CallStatus;
   grade: CallGrade;
+  /** 녹음 재생용 프리사인 URL. 상세 조회에서만 채워짐 — 목록(placeholder)에는 없음(null). */
+  audioUrl?: string | null;
   transcript: Utterance[]; // 백엔드 계약에 전사 필드가 아직 없어 항상 빈 배열
   fields: CallFields;
   confirmedAt?: string | null;

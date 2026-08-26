@@ -170,6 +170,7 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     durationSec: null, // TODO(백엔드 갭): 목록 API엔 call_duration_sec이 없음 — 상세에서만 나옴
     status: mapCallStatus(item.status, needsFollowup),
     grade: mapGrade(item.grade),
+    audioUrl: null, // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
     transcript: [],
     fields: EMPTY_FIELDS,
     isSummary: true,
@@ -208,6 +209,7 @@ export function toCall(detail: BackendReviewDetail): Call {
     durationSec: detail.callDurationSec,
     status: mapCallStatus(detail.status, needsFollowup),
     grade: mapGrade(detail.classification?.grade),
+    audioUrl: detail.audioUrl ?? null,
     transcript: (detail.transcript ?? []).map(toUtterance),
     fields,
     failures: detail.failures ?? [],

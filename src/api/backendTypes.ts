@@ -67,6 +67,8 @@ export interface BackendReviewDetail {
   summary: BackendJudgment<unknown> | null;
   needsFollowup: BackendJudgment<unknown> | null;
   needsFaq: BackendJudgment<unknown> | null;
+  /** 짧게 살아있는 프리사인 GET URL. audioPath가 없거나 형식이 이상하면 null (재생 불가). */
+  audioUrl: string | null;
   transcript: BackendUtterance[];
   failures: string[];
   confirmedAt: string | null;

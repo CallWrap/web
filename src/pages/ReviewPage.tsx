@@ -246,6 +246,7 @@ export function ReviewPage() {
             evidenceIds={evidenceIds}
             flashId={flashId}
             registerRef={registerRef}
+            audioUrl={call.audioUrl ?? null}
           />
 
           <div className="panel">
