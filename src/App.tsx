@@ -9,7 +9,8 @@ import { LoginPage } from './pages/LoginPage';
 import { ToastHost } from './store/toastStore';
 import { useCallStore } from './store/callStore';
 import { useAuthStore } from './store/authStore';
-import { ADMIN_TABS } from './lib/adminTabs';
+import { ADMIN_TABS, ADMIN_TAB_ICONS } from './lib/adminTabs';
+import { ChartIcon, CheckIcon, LogoMark, LoopIcon, TrayIcon } from './components/icons';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -38,53 +39,86 @@ function Topbar() {
   );
 }
 
+/** 얇은 아이콘 레일 + "모니터" 클릭으로 여는 분류 패널("사이드바 안의 사이드바"). 대기열·후속·
+ * 완료는 레일에 바로 있어 패널에 중복으로 안 넣는다 — 패널엔 모니터링 7개 탭만. */
 function Sidebar() {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
   const calls = useCallStore((s) => s.calls);
   const pending = calls.filter((c) => c.status === 'analyzing' || c.status === 'review').length;
   const followups = calls.filter((c) => c.status === 'followup').length;
   // 대기열 상단의 "오늘 처리 완료" 카드와 같은 집합 — 후속 처리 건도 확정된 콜이다.
   const completed = calls.filter((c) => c.status === 'confirmed' || c.status === 'followup').length;
   const analyzing = calls.some((c) => c.status === 'analyzing');
+  const inMonitoring = pathname.startsWith('/admin');
 
-  const nav = ({ isActive }: { isActive: boolean }) => `nav-item ${isActive ? 'active' : ''}`;
+  function go() {
+    setOpen(false);
+  }
 
   return (
-    <aside className="sidebar">
-      <NavLink to="/queue" className={nav} aria-label="검토 대기열">
-        검토 대기열
-        {pending > 0 && (
-          <span className={`icon-badge ${analyzing ? 'alert' : ''}`}>{pending}</span>
-        )}
-      </NavLink>
-      <NavLink to="/followups" className={nav} aria-label="후속 처리">
-        후속 처리
-        {followups > 0 && <span className="icon-badge">{followups}</span>}
-      </NavLink>
-      <NavLink to="/completed" className={nav} aria-label="처리 완료">
-        처리 완료
-        {completed > 0 && <span className="icon-badge">{completed}</span>}
-      </NavLink>
+    <div className="sidebar-shell">
+      <aside className="rail">
+        <NavLink to="/queue" className={({ isActive }) => `rail-item ${isActive ? 'active' : ''}`} aria-label="검토 대기열">
+          <TrayIcon size={18} />
+          <span className="rlabel">대기열</span>
+          {pending > 0 && <span className={`rail-badge ${analyzing ? 'alert' : ''}`}>{pending}</span>}
+        </NavLink>
+        <NavLink to="/followups" className={({ isActive }) => `rail-item ${isActive ? 'active' : ''}`} aria-label="후속 처리">
+          <LoopIcon size={18} />
+          <span className="rlabel">후속</span>
+          {followups > 0 && <span className="rail-badge">{followups}</span>}
+        </NavLink>
+        <NavLink to="/completed" className={({ isActive }) => `rail-item ${isActive ? 'active' : ''}`} aria-label="처리 완료">
+          <CheckIcon size={18} />
+          <span className="rlabel">완료</span>
+          {completed > 0 && <span className="rail-badge">{completed}</span>}
+        </NavLink>
 
-      <div className="nav-divider" />
+        <div className="rail-divider" />
 
-      <NavLink to="/admin" end className={nav} aria-label="모니터링 대시보드">
-        모니터링
-      </NavLink>
+        {/* 모니터 버튼 자체가 분류 패널 토글이다(따로 있던 햄버거 버튼 제거) */}
+        <button
+          className={`rail-item ${inMonitoring ? 'active' : ''}`}
+          onClick={() => setOpen((v) => !v)}
+          aria-label="모니터링 분류 열기"
+          aria-expanded={open}
+        >
+          <ChartIcon size={18} />
+          <span className="rlabel">모니터</span>
+        </button>
 
-      <div className="nav-sub">
-        {ADMIN_TABS.filter((t) => t.key !== 'overview').map((t) => (
-          <NavLink
-            key={t.key}
-            to={`/admin/${t.key}`}
-            className={({ isActive }) => `nav-subitem ${isActive ? 'active' : ''}`}
-            title={t.label}
-            aria-label={t.label}
-          >
-            {t.short}
-          </NavLink>
-        ))}
-      </div>
-    </aside>
+        <div className="rail-spacer" />
+        <LogoMark size={32} />
+      </aside>
+
+      {open && (
+        <>
+          <button className="sidebar-scrim" onClick={() => setOpen(false)} aria-label="분류 패널 닫기" />
+          <div className="flyout">
+            <div className="flyout-group-label">모니터링</div>
+            <NavLink to="/admin" end onClick={go} className={({ isActive }) => `flyout-item ${isActive ? 'active' : ''}`}>
+              <ChartIcon size={15} />
+              <span>개요</span>
+            </NavLink>
+            {ADMIN_TABS.filter((t) => t.key !== 'overview').map((t) => {
+              const Icon = ADMIN_TAB_ICONS[t.key];
+              return (
+                <NavLink
+                  key={t.key}
+                  to={`/admin/${t.key}`}
+                  onClick={go}
+                  className={({ isActive }) => `flyout-item ${isActive ? 'active' : ''}`}
+                >
+                  <Icon size={15} />
+                  <span>{t.short}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

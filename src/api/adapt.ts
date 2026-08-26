@@ -174,6 +174,7 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     fields: EMPTY_FIELDS,
     isSummary: true,
     confidenceSummary: { high: item.highConfidenceFieldCount, total: item.totalFieldCount },
+    confirmedAt: item.confirmedAt ?? null,
     failures: [], // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
   };
 }

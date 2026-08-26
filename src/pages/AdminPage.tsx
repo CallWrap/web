@@ -35,6 +35,10 @@ export function AdminPage() {
   const tab: AdminTab = ADMIN_TABS.some((t) => t.key === tabParam) ? (tabParam as AdminTab) : 'overview';
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  // 개요 탭 차트 전환 — 유형 분포/악성콜 밸런싱/시간대별 처리량을 동시에 늘어놓지 않고
+  // 한 번에 하나만 보여준다. 세 그래프가 한 화면에 다 있으면 뭘 봐야 할지 못 골랐다는
+  // 피드백이 있었다(2026-08-25) — 차트 개수 자체를 줄여서 해결한다.
+  const [chartView, setChartView] = useState<'type' | 'agent' | 'hourly'>('type');
 
   // 개요 탭 집계: DB에서 GROUP BY/AVG로 계산해서 온다 (/api/reviews/stats).
   // getQueue()가 주는 calls는 최근 100건 캡이 걸려 있어서 그걸로 세면 100건이 넘는 순간부터
@@ -179,8 +183,9 @@ export function AdminPage() {
             key={t.key}
             className={`admin-tab ${tab === t.key ? 'active' : ''}`}
             onClick={() => navigate(t.key === 'overview' ? '/admin' : `/admin/${t.key}`)}
+            title={t.label}
           >
-            {t.label}
+            {t.short}
           </button>
         ))}
       </div>
@@ -188,6 +193,7 @@ export function AdminPage() {
       {/* ═══════ 개요 ═══════ */}
       {tab === 'overview' && (
         <>
+          <div className="section-label">오늘 현황</div>
           <div className="metric-row four">
             <button className="metric" onClick={() => setDrawerFilter('processed')}>
               <div className="label">오늘 처리 건수</div>
@@ -227,72 +233,85 @@ export function AdminPage() {
             </button>
           </div>
 
-          <div className="info-note">
-            <span>ℹ</span>
-            <span>
-              평균 검토 시간은 상담사가 이 데모에서 <strong>실제 검토한 시간</strong>을 반영합니다. 콜을
-              검토·저장할수록 수치가 갱신됩니다.
-            </span>
-          </div>
+          <p className="overview-caption">
+            <strong>평균 검토 시간</strong>은 상담사가 실제 검토한 시간 기준입니다. 카드를 클릭하면 해당 콜 목록을 볼 수 있습니다.
+          </p>
 
-          <div className="chart-grid">
-            <div className="chart-card">
-              <h3>상담유형 분포</h3>
-              <div className="sub">오늘 처리된 콜 기준</div>
-              {typeDist.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={typeDist} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                    <XAxis dataKey="type" tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                    <Bar dataKey="n" radius={[5, 5, 0, 0]} name="건수" isAnimationActive={false}>
-                      {typeDist.map((_, i) => (
-                        <Cell key={i} fill={typeColors[i % typeColors.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="choice-hint">아직 처리된 콜이 없습니다.</p>
-              )}
+          <div className="section-label">처리 추이</div>
+          <div className="chart-card">
+            <div className="chart-head">
+              <h3>
+                {chartView === 'type' && '상담유형 분포'}
+                {chartView === 'agent' && '상담사별 악성콜 밸런싱'}
+                {chartView === 'hourly' && '시간대별 처리량'}
+              </h3>
+              <div className="chart-switch">
+                <button className={chartView === 'type' ? 'active' : ''} onClick={() => setChartView('type')}>유형 분포</button>
+                <button className={chartView === 'agent' ? 'active' : ''} onClick={() => setChartView('agent')}>악성콜 밸런싱</button>
+                <button className={chartView === 'hourly' ? 'active' : ''} onClick={() => setChartView('hourly')}>시간대별</button>
+              </div>
             </div>
 
-            <div className="chart-card">
-              <h3>상담사별 악성콜 밸런싱</h3>
-              <div className="sub">특정 상담사 편중 방지 모니터링</div>
-              {agentBalance.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={agentBalance} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                    <Bar dataKey="n" radius={[5, 5, 0, 0]} fill="var(--danger)" name="악성콜" isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="choice-hint">악성콜로 확정된 건이 아직 없습니다.</p>
-              )}
-            </div>
+            {chartView === 'type' && (
+              <>
+                <div className="sub">오늘 처리된 콜 기준</div>
+                {typeDist.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <BarChart data={typeDist} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
+                      <XAxis dataKey="type" tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
+                      <Bar dataKey="n" radius={[5, 5, 0, 0]} name="건수" isAnimationActive={false}>
+                        {typeDist.map((_, i) => (
+                          <Cell key={i} fill={typeColors[i % typeColors.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="choice-hint">아직 처리된 콜이 없습니다.</p>
+                )}
+              </>
+            )}
 
-            <div className="chart-card wide">
-              <h3>시간대별 처리량</h3>
-              <div className="sub">AI 후처리 자동화로 피크 시간 처리 지연 완화 (오늘 기준)</div>
-              {hourlyThroughput.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <LineChart data={hourlyThroughput} margin={{ top: 4, right: 12, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                    <XAxis dataKey="h" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                    <Line type="monotone" dataKey="n" stroke="var(--brand)" strokeWidth={2.5} dot={{ r: 3 }} name="처리 건수" isAnimationActive={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="choice-hint">오늘 접수된 콜이 아직 없습니다.</p>
-              )}
-            </div>
+            {chartView === 'agent' && (
+              <>
+                <div className="sub">특정 상담사 편중 방지 모니터링</div>
+                {agentBalance.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <BarChart data={agentBalance} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
+                      <Bar dataKey="n" radius={[5, 5, 0, 0]} fill="var(--danger)" name="악성콜" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="choice-hint">악성콜로 확정된 건이 아직 없습니다.</p>
+                )}
+              </>
+            )}
+
+            {chartView === 'hourly' && (
+              <>
+                <div className="sub">AI 후처리 자동화로 피크 시간 처리 지연 완화 (오늘 기준)</div>
+                {hourlyThroughput.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <LineChart data={hourlyThroughput} margin={{ top: 4, right: 12, left: -18, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
+                      <XAxis dataKey="h" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
+                      <Line type="monotone" dataKey="n" stroke="var(--brand)" strokeWidth={2.5} dot={{ r: 3 }} name="처리 건수" isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="choice-hint">오늘 접수된 콜이 아직 없습니다.</p>
+                )}
+              </>
+            )}
           </div>
         </>
       )}
@@ -383,35 +402,12 @@ export function AdminPage() {
             />
           </div>
 
-          <div className="dense-head">
-            <h2>상담유형 분포</h2>
-            <p>오늘 처리된 콜 기준 실제 분포입니다. sr_type.py(SR유형 8종) 모델이 analyze()에 병합되어 반영됩니다.</p>
-          </div>
-          <div className="chart-grid">
-            <div className="chart-card wide">
-              <h3>상담유형 분포</h3>
-              <div className="sub">오늘 처리된 콜 기준</div>
-              {typeDist.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={typeDist} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                    <XAxis dataKey="type" tick={{ fontSize: 10.5, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                    <Bar dataKey="n" radius={[5, 5, 0, 0]} name="건수" isAnimationActive={false}>
-                      {typeDist.map((_, i) => (
-                        <Cell key={i} fill={typeColors[i % typeColors.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="choice-hint">아직 처리된 콜이 없습니다.</p>
-              )}
-            </div>
-          </div>
+          <p className="overview-caption">
+            상담유형 분포 차트는 <strong>개요</strong> 탭(처리 추이 → 유형 분포)에서 볼 수 있습니다.
+            sr_type.py(SR유형 8종) 모델이 analyze()에 병합되어 반영됩니다.
+          </p>
 
-          <div className="measure-grid" style={{ marginTop: 26 }}>
+          <div className="measure-grid">
             <PendingMetric
               label="골든셋 vs 실제 모집단 분포 비교"
               plan="골든셋이 구축되면 희소 클래스 과표집 표본 분포와 실제 모집단 분포(불균형) 대조가 여기 표시됩니다."

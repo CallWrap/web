@@ -87,68 +87,63 @@ a { color: inherit; text-decoration: none; }
 /* ── App shell ── */
 .app { display: flex; min-height: 100vh; }
 
-/* ── 사이드바 — 아이콘 대신 짧은 단어 라벨. 내부망 전용 툴이라 브랜딩은 필요 없다 ── */
-.sidebar {
-  width: 108px;
-  flex-shrink: 0;
-  background: var(--surface);
-  color: var(--text-2);
-  padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  border-right: 1px solid var(--border);
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  height: 36px;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
-  color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.12s, color 0.12s;
-}
-.nav-item:hover { background: var(--surface-2); color: var(--text); }
-.nav-item.active { background: var(--brand-bg); color: var(--brand-ink); }
-.nav-item .icon-badge {
-  position: absolute; top: -3px; right: -3px;
-  min-width: 16px; height: 16px; padding: 0 4px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--surface-2); color: var(--text-2);
-  border: 1.5px solid var(--surface);
-  font-size: 9.5px; font-weight: 700; border-radius: 999px;
-}
-.nav-item.active .icon-badge { background: #fff; color: var(--brand-ink); }
-.nav-item .icon-badge.alert { background: var(--danger); color: #fff; }
-.nav-divider { width: 100%; height: 1px; background: var(--border); margin: 6px 0; }
+/* ── 사이드바 — 얇은 아이콘 레일 + "모니터" 클릭으로 여는 분류 패널("사이드바 안의 사이드바").
+   레일은 항상 떠 있고, 패널은 모니터링 7개 탭만 담는다(대기열·후속·완료는 레일에 직접 있음). ── */
+.sidebar-shell { position: sticky; top: 0; height: 100vh; z-index: 30; display: flex; }
 
-/* 모니터링 대시보드 하위 탭 바로가기 — 단어 라벨로 구분 */
-.nav-sub { display: flex; flex-direction: column; gap: 3px; }
-.nav-subitem {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  color: var(--text-3);
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
+.rail {
+  width: 60px; flex-shrink: 0; background: var(--surface); color: var(--text-2);
+  padding: 14px 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  height: 100%; border-right: 1px solid var(--border);
+}
+.rail-item {
+  width: 46px; height: 46px; border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--text-3); position: relative;
+  border: none; background: none; padding: 0; font: inherit; cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
-.nav-subitem:hover { background: var(--surface-2); color: var(--text); }
-.nav-subitem.active { background: var(--brand-bg); color: var(--brand-ink); }
+.rail-item:hover { background: var(--surface-2); color: var(--text-2); }
+.rail-item.active { background: var(--brand-bg); color: var(--brand-ink); }
+.rail-item .rlabel { font-size: 9px; font-weight: 700; }
+.rail-badge {
+  position: absolute; top: 2px; right: 6px; min-width: 14px; height: 14px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--brand); color: #fff; font-size: 8.5px; font-weight: 700;
+  border-radius: 999px; border: 1.5px solid var(--surface);
+}
+.rail-badge.alert { background: var(--danger); }
+.rail-divider { width: 26px; height: 1px; background: var(--border); margin: 8px 0; }
+.rail-spacer { flex: 1; }
+
+.sidebar-scrim {
+  position: fixed; inset: 0; left: 60px; z-index: 28;
+  background: rgba(20, 20, 32, 0.06); border: none; padding: 0; cursor: default;
+}
+
+/* 분류 패널 — "모니터" 클릭으로 레일 옆에 뜨는 오버레이. 모니터링 7개 탭만, 좁고 낮게. */
+.flyout {
+  position: fixed; top: 0; left: 60px; bottom: 0; width: 168px; z-index: 29;
+  background: var(--surface); border-right: 1px solid var(--border); box-shadow: var(--shadow-lg);
+  padding: 12px 8px; overflow-y: auto;
+  animation: flyoutIn 0.14s ease;
+}
+@keyframes flyoutIn { from { opacity: 0; transform: translateX(-6px); } }
+.flyout-group-label {
+  padding: 0 6px; margin-bottom: 4px;
+  font-size: 10px; font-weight: 700; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.flyout-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px;
+  border-radius: 6px; color: var(--text-2); font-size: 12.5px; font-weight: 600;
+  border: none; background: none; font-family: inherit; cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.flyout-item svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
+.flyout-item:hover { background: var(--surface-2); color: var(--text); }
+.flyout-item.active { background: var(--brand-bg); color: var(--brand-ink); }
+.flyout-item.active svg { color: var(--brand-ink); }
 
 .main {
   flex: 1;
@@ -191,11 +186,44 @@ a { color: inherit; text-decoration: none; }
 }
 .metric:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); border-color: var(--border-strong); }
 .metric .label { font-size: 12px; color: var(--text-2); font-weight: 500; display: flex; align-items: center; gap: 6px; }
-.metric .value { font-family: var(--font-serif); font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-top: 6px; }
+.metric .value { font-family: var(--font-serif); font-size: 32px; font-weight: 800; letter-spacing: -0.01em; margin-top: 7px; display: flex; align-items: baseline; gap: 3px; }
 .metric .value small { font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--text-3); }
-.metric .sub { font-size: 12px; margin-top: 3px; color: var(--text-3); }
+.metric .sub { font-size: 12px; margin-top: 4px; color: var(--text-3); }
 .metric .sub.good { color: var(--high); font-weight: 600; }
 .metric .sub.warn { color: var(--danger); font-weight: 600; }
+
+/* 즉시 액션이 필요한 카드(검토 대기 등) — 앱이 다른 곳(악성콜 행 등)에서 이미 쓰는
+   left-border 악센트로 강조한다. 배경을 통째로 칠하면 다른 카드와 톤이 어긋난다. */
+.metric.attention { border-left: 3px solid var(--brand); }
+.metric.attention .label { color: var(--brand-ink); font-weight: 700; }
+.metric.attention .value { color: var(--brand-ink); }
+.metric.attention .label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+
+/* 대기열 화면 상단 — 카드 3장을 고정폭으로 줄이고, 오른쪽 남는 공간은 최근 처리 완료로 채운다. */
+.top-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.metric-row.compact { grid-template-columns: repeat(3, 168px); gap: 8px; margin-bottom: 0; flex-shrink: 0; }
+.metric-row.compact .metric { padding: 9px 11px; }
+.metric-row.compact .metric .label { font-size: 11px; }
+.metric-row.compact .metric .value { font-size: 19px; margin-top: 3px; }
+.metric-row.compact .metric .value small { font-size: 11px; }
+.metric-row.compact .metric .sub { font-size: 10.5px; margin-top: 2px; }
+
+.recent-panel {
+  flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px;
+}
+.recent-panel .rp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.recent-panel .rp-head h3 { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.recent-panel .rp-head span { font-size: 11px; color: var(--text-3); }
+.recent-panel .rp-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  border-top: 1px solid var(--border); font-size: 12.5px;
+}
+.recent-panel .rp-row:first-of-type { border-top: none; }
+.recent-panel .rp-row .rp-cid { font-weight: 700; color: var(--text-2); flex-shrink: 0; }
+.recent-panel .rp-row .rp-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.recent-panel .rp-row .rp-time { font-size: 11px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.recent-panel .rp-empty { font-size: 12px; color: var(--text-3); padding: 10px 0 4px; }
 
 /* ── Metric drawer — 모니터링 카드 클릭 시 오른쪽에서 밀려나오는 콜 목록 ── */
 .drawer-overlay {
@@ -264,10 +292,11 @@ a { color: inherit; text-decoration: none; }
 .qrow .cid { font-family: var(--font-serif); font-weight: 700; font-size: 16px; }
 .qrow .cid small { display: block; font-family: var(--font); font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 3px; }
 .qrow .mid { min-width: 0; }
-/* 제목은 길이가 제각각이라 한 줄로 자른다. .mid의 min-width:0이 있어야 말줄임이 먹는다. */
-.qrow .mid .title { font-weight: 600; font-size: 14.5px; margin-bottom: 6px;
+/* 제목을 상태 배지와 같은 줄에 둔다 — 예전엔 제목 줄 따로, 배지 줄 따로였다.
+   제목은 길이가 제각각이라 한 줄로 자른다. .mid의 min-width:0이 있어야 말줄임이 먹는다. */
+.qrow .mid .line1 { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
+.qrow .mid .title { font-weight: 600; font-size: 14.5px; min-width: 0; flex-shrink: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qrow .mid .line1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .qrow .mid .meta { color: var(--text-2); font-size: 12.5px; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 .qrow .mid .meta .warn { color: var(--danger); font-weight: 600; }
 
@@ -282,8 +311,17 @@ a { color: inherit; text-decoration: none; }
 .tier-dots .dot.low { background: var(--surface); border: 1.5px dashed var(--low-bd); width: 6px; height: 6px; }
 
 .qrow .right { display: flex; align-items: center; gap: 14px; }
-.qrow .ai-summary { font-size: 12px; color: var(--text-2); text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.qrow .ai-summary strong { color: var(--high); }
+.qrow .ai-summary { font-size: 12px; color: var(--text-2); text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; min-width: 100px; }
+.qrow .ai-summary-line { display: flex; align-items: baseline; gap: 5px; }
+.qrow .ai-summary strong.pct { font-size: 14px; font-variant-numeric: tabular-nums; }
+.qrow .ai-summary strong.pct.high { color: var(--high); }
+.qrow .ai-summary strong.pct.medium { color: var(--medium); }
+.qrow .ai-summary strong.pct.low { color: var(--text-2); }
+.confidence-bar { display: block; width: 100px; height: 5px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.confidence-bar i { display: block; height: 100%; border-radius: inherit; }
+.confidence-bar i.high { background: var(--high); }
+.confidence-bar i.medium { background: var(--medium); }
+.confidence-bar i.low { background: var(--text-3); }
 
 /* ── Badges ── */
 .badge-pill {
@@ -625,6 +663,21 @@ a { color: inherit; text-decoration: none; }
 .chart-card h3 { margin: 0 0 4px; font-size: 14px; }
 .chart-card .sub { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
 
+/* 개요 탭 — 오늘 현황/처리 추이 구간을 나누는 소제목, 차트 세 개를 한 번에 하나만 보여주는 전환. */
+.section-label {
+  font-size: 11px; font-weight: 700; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;
+}
+.overview-caption { font-size: 11.5px; color: var(--text-3); margin: 8px 0 24px; }
+.overview-caption strong { color: var(--text-2); font-weight: 600; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.chart-switch { display: inline-flex; gap: 2px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 3px; }
+.chart-switch button {
+  border: none; background: none; padding: 6px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+}
+.chart-switch button.active { background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow); }
+
 /* ── Admin — 통계 pill + 탭 + 조밀한 통화 대장(ledger) ── */
 .admin-stats { display: flex; gap: 8px; margin-bottom: 14px; }
 .stat-pill {
@@ -641,6 +694,7 @@ a { color: inherit; text-decoration: none; }
 
 .admin-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
 .admin-tab {
+  display: flex; align-items: center; gap: 5px;
   border: none; background: none; padding: 10px 4px; margin-right: 20px; margin-bottom: -1px;
   font-size: 13.5px; font-weight: 600; color: var(--text-3);
   border-bottom: 2px solid transparent;
@@ -648,9 +702,11 @@ a { color: inherit; text-decoration: none; }
 .admin-tab:hover { color: var(--text-2); }
 .admin-tab.active { color: var(--text); border-bottom-color: var(--brand); }
 
-.dense-head { padding-bottom: 12px; margin-bottom: 16px; border-bottom: 2px solid var(--brand); }
-.dense-head h2 { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
-.dense-head p { margin: 0; font-size: 12.5px; color: var(--text-2); }
+/* 예전엔 브랜드색 2px 밑줄 + 800weight 제목이 탭마다 2~3번씩 반복돼서 그 자체가 "너무 많은
+   모형"의 절반이었다 — 개요 탭의 section-label만큼 가볍게 낮춰서 다른 탭에도 같은 방향을 준다. */
+.dense-head { padding-bottom: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.dense-head h2 { font-size: 15px; font-weight: 700; margin: 0 0 3px; }
+.dense-head p { margin: 0; font-size: 12px; color: var(--text-3); }
 
 .ledger-search {
   width: 100%; max-width: 360px; font: inherit; font-size: 13px;
@@ -795,6 +851,20 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius-sm); padding: 11px 14px;
   font-size: 12.5px; color: var(--brand-ink); margin-bottom: 16px;
 }
+.info-note .state-chip {
+  display: inline-flex; align-items: center;
+  padding: 1px 8px; margin: 0 1px;
+  border-radius: 999px; font-weight: 700; font-size: 11.5px;
+  background: var(--surface); color: var(--text-2); border: 1px solid var(--border-strong);
+  vertical-align: middle;
+}
+.info-note .state-chip.done { background: var(--high); color: #fff; border-color: var(--high); }
+.info-note .state-arrow { margin: 0 4px; color: var(--brand-ink); font-weight: 700; }
+
+/* 대기열 화면 배너 — 헤드라인과 상태 흐름을 줄바꿔서 분리한다(아이콘 없이 세로 쌓임). */
+.info-note.stacked { display: block; }
+.info-note .headline { font-size: 13px; font-weight: 700; color: var(--brand-ink); margin-bottom: 4px; }
+.info-note .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--brand-ink); }
 
 @media (max-width: 1000px) {
   .review-grid { grid-template-columns: 1fr; }
