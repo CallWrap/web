@@ -141,6 +141,10 @@ export interface BackendReviewStats {
   avgReviewSec: number | null;
   hourlyThroughput: Record<string, number>;
   maliciousByCounselor: Record<string, number>;
+  /** 판정 5종(유형·분류·등급·요약·후속필요) confidence 평균, 0~1. 판정이 하나도 없으면 null. */
+  avgConfidence: number | null;
+  /** 위 판정들 중 고신뢰(confidence >= 0.9) 비율, 0~1. 판정이 하나도 없으면 null. */
+  highConfidenceRate: number | null;
 }
 
 export interface BackendErrorResponse {

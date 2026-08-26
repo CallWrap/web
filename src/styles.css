@@ -620,11 +620,14 @@ a { color: inherit; text-decoration: none; }
 /* ── Admin — 통계 pill + 탭 + 조밀한 통화 대장(ledger) ── */
 .admin-stats { display: flex; gap: 8px; margin-bottom: 14px; }
 .stat-pill {
+  /* button으로 렌더된다 — 클릭하면 해당하는 콜 목록을 드로어로 보여준다. */
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 14px; border-radius: 8px;
   background: var(--surface); border: 1px solid var(--border);
   font-size: 12.5px; font-weight: 600; color: var(--text-2);
+  font-family: inherit; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
 }
+.stat-pill:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
 .stat-pill b { font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
 .stat-pill.malicious b { color: var(--danger); }
 .stat-pill.praise b { color: var(--praise); }

@@ -109,19 +109,27 @@ export function AdminPage() {
   const inReviewCalls = calls.filter((c) => c.status === 'review' || c.status === 'analyzing');
   const inReview = inReviewCalls.length;
   const maliciousCalls = calls.filter((c) => c.grade === 'malicious');
+  const normalCalls = calls.filter((c) => c.grade === 'normal');
+  const praiseCalls = calls.filter((c) => c.grade === 'praise');
 
   const avgMM = Math.floor(avgReview / 60);
   const avgSS = (avgReview % 60).toString().padStart(2, '0');
 
   // 개요 카드 클릭 → 그 숫자를 이룬 콜 목록을 사이드 드로어로. calls는 최근 100건 캡이 있어서
   // 카드 상단 숫자(DB 전체 집계)와 드로어에 뜨는 실제 행 수가 다를 수 있다 — note로 그 사실을 밝힌다.
-  const [drawerFilter, setDrawerFilter] = useState<null | 'processed' | 'avgReview' | 'malicious' | 'inReview'>(null);
+  // "전체" 카드는 등급별 배지(악성/일반/칭찬) 합과 안 맞을 수 있다 — 배지는 등급 판정이 끝난
+  // 콜만 세고, 전체는 상태 상관없이(분석 중·판정 대기 포함) DB 전체 콜 수라 정의 자체가 다르다.
+  const [drawerFilter, setDrawerFilter] =
+    useState<null | 'processed' | 'avgReview' | 'malicious' | 'inReview' | 'normal' | 'praise' | 'total'>(null);
   const DRAWER_CAP_NOTE = '최근 100건 중에서 찾은 목록입니다 · 카드 숫자는 DB 전체 집계입니다.';
   const DRAWER_CONFIG: Record<NonNullable<typeof drawerFilter>, { title: string; calls: Call[]; note: string }> = {
     processed: { title: '오늘 처리 건수', calls: processed, note: `확정 + 후속 처리 포함 · ${DRAWER_CAP_NOTE}` },
     avgReview: { title: '평균 검토 시간에 포함된 콜', calls: processedWithTime, note: `검토 소요 시간이 기록된 콜만 · ${DRAWER_CAP_NOTE}` },
     malicious: { title: '악성콜로 확정된 콜', calls: maliciousCalls, note: DRAWER_CAP_NOTE },
     inReview: { title: '검토 대기 중인 콜', calls: inReviewCalls, note: `AI 분석 완료 후 상담사 확인 대기 · ${DRAWER_CAP_NOTE}` },
+    normal: { title: '일반으로 판정된 콜', calls: normalCalls, note: DRAWER_CAP_NOTE },
+    praise: { title: '칭찬콜로 판정된 콜', calls: praiseCalls, note: DRAWER_CAP_NOTE },
+    total: { title: '전체 콜', calls, note: `상태·판정 여부 상관없이 전체 · ${DRAWER_CAP_NOTE}` },
   };
 
   function openInLedger(callId: string) {
@@ -161,18 +169,18 @@ export function AdminPage() {
   return (
     <div className="content">
       <div className="admin-stats">
-        <span className="stat-pill malicious">
+        <button className="stat-pill malicious" onClick={() => setDrawerFilter('malicious')}>
           악성 <b>{maliciousCount}</b>
-        </span>
-        <span className="stat-pill normal">
+        </button>
+        <button className="stat-pill normal" onClick={() => setDrawerFilter('normal')}>
           일반 <b>{normalCount}</b>
-        </span>
-        <span className="stat-pill praise">
+        </button>
+        <button className="stat-pill praise" onClick={() => setDrawerFilter('praise')}>
           칭찬 <b>{praiseCount}</b>
-        </span>
-        <span className="stat-pill total">
+        </button>
+        <button className="stat-pill total" onClick={() => setDrawerFilter('total')}>
           전체 <b>{totalCount}</b>
-        </span>
+        </button>
       </div>
 
       <div className="admin-tabs">
@@ -234,6 +242,40 @@ export function AdminPage() {
           <p className="overview-caption">
             <strong>평균 검토 시간</strong>은 상담사가 실제 검토한 시간 기준입니다. 카드를 클릭하면 해당 콜 목록을 볼 수 있습니다.
           </p>
+
+          {/* AI 판정 5종(유형·분류·등급·요약·후속필요)의 confidence를 집계한 값 — 0.9 이상을
+              고신뢰로 본다(ReviewQueryService의 기준과 동일). 판정이 하나도 없으면 EMPTY.confidence. */}
+          <div className="section-label">AI 신뢰도</div>
+          <div className="metric-row">
+            <div className="metric">
+              <div className="label">평균 신뢰도</div>
+              <div className="value">
+                {stats?.avgConfidence != null ? (
+                  <>
+                    {Math.round(stats.avgConfidence * 100)}
+                    <small>%</small>
+                  </>
+                ) : (
+                  EMPTY.confidence
+                )}
+              </div>
+              <div className="sub">유형·분류·등급·요약·후속필요 판정 평균</div>
+            </div>
+            <div className="metric">
+              <div className="label">고신뢰 판정 비율</div>
+              <div className="value">
+                {stats?.highConfidenceRate != null ? (
+                  <>
+                    {Math.round(stats.highConfidenceRate * 100)}
+                    <small>%</small>
+                  </>
+                ) : (
+                  EMPTY.confidence
+                )}
+              </div>
+              <div className="sub">confidence 0.9 이상 판정 비율</div>
+            </div>
+          </div>
 
           <div className="section-label">처리 추이</div>
           <div className="chart-card">

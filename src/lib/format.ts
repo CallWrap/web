@@ -12,6 +12,7 @@ export const EMPTY = {
   summary: '요약 정리 중',
   choiceValue: '선택 필요',
   fieldValue: '입력 필요',
+  confidence: '판정 없음',
 } as const;
 
 export function fmtDuration(sec: number | null | undefined): string {
