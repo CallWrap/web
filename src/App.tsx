@@ -77,7 +77,6 @@ function Sidebar({ isAdmin }: { isAdmin: boolean }) {
               <span className="rlabel">완료</span>
               {completed > 0 && <span className="rail-badge">{completed}</span>}
             </NavLink>
-            <div className="rail-divider" />
           </>
         )}
 
