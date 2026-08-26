@@ -1,6 +1,11 @@
-/** 값에 쉼표·줄바꿈·따옴표가 있으면 큰따옴표로 감싸고 내부 따옴표는 이스케이프한다. */
+/**
+ * 값에 쉼표·줄바꿈·따옴표가 있으면 큰따옴표로 감싸고 내부 따옴표는 이스케이프한다.
+ * =, +, -, @ 로 시작하면 엑셀이 수식으로 해석할 수 있어(CSV 인젝션) 앞에 작은따옴표를 붙여 무력화한다 —
+ * 전사문 등 상담 중 발화가 그대로 들어가는 셀이라 값 자체를 신뢰할 수 없다.
+ */
 function csvCell(value: string | number | boolean): string {
-  const s = String(value);
+  let s = String(value);
+  if (/^[=+\-@]/.test(s)) s = `'${s}`;
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

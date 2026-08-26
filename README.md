@@ -95,6 +95,7 @@ src/
 ├── data/        measuredMetrics(AI-model 실측치, 내부/제한 검증 라벨)
 ├── mock/        qualityScores(상담품질 배점 체계 — 통화별 채점은 미연동)
 ├── store/       callStore · authStore · toastStore
+├── hooks/       useReviewStream(SSE 실시간 대기열 갱신, 연결 끊김 상태 노출)
 ├── lib/         format(라벨·포맷·EMPTY 상수) · classificationOptions · exportCsv · adminTabs
 ├── components/  TriageForm · TranscriptPanel · StatusBadge · QueueRow · FaqReviewPanel · PendingMetric
 └── pages/       QueuePage · ReviewPage · FollowupPage · CompletedPage · AdminPage · LoginPage

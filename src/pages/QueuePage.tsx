@@ -4,7 +4,6 @@ import { useCallStore } from "../store/callStore";
 import { useReviewStream } from "../hooks/useReviewStream";
 import { QueueRow } from "../components/QueueRow";
 import { SealIcon } from "../components/icons";
-import { EMPTY, fmtCallNo, fmtTime } from "../lib/format";
 
 export function QueuePage() {
   const { calls, loaded, loadError, loadQueue, totalReviewSec } = useCallStore();
@@ -18,7 +17,7 @@ export function QueuePage() {
 
   // 상담이 끝나서 상태가 바뀌거나(분석 중→검토 대기) 다른 상담사가 확정해서 항목이
   // 빠지는 걸 새로고침 없이 실시간으로 반영한다.
-  useReviewStream();
+  const { connected } = useReviewStream();
 
   // 악성콜(감정노동 보호 대상)을 맨 위로 — 상담원이 대기열을 훑을 때 가장 먼저 눈에 들어와야 함
   const pending = calls
@@ -43,9 +42,6 @@ export function QueuePage() {
     : "아직 검토 기록 없음";
 
   // 오른쪽 남는 공간 — 오늘 확정한 콜을 최근 순으로 몇 개 보여준다(꾸며낸 통계 아님).
-  const recentProcessed = [...processed]
-    .sort((a, b) => (b.confirmedAt ?? "").localeCompare(a.confirmedAt ?? ""))
-    .slice(0, 3);
 
   return (
     <div className="content">
@@ -90,18 +86,33 @@ export function QueuePage() {
             <h3>최근 처리 완료</h3>
             <span>확정 순</span>
           </div>
-          {recentProcessed.length === 0 ? (
-            <div className="rp-empty">아직 오늘 처리한 콜이 없습니다.</div>
-          ) : (
-            recentProcessed.map((c) => (
-              <div className="rp-row" key={c.callId}>
-                <span className="rp-cid">{fmtCallNo(c.callNo)}</span>
-                <span className="rp-title">{c.title ?? EMPTY.title}</span>
-                <span className="rp-time">{fmtTime(c.confirmedAt)}</span>
-              </div>
-            ))
-          )}
+          <div className="sub good">후처리 시간 평균 68% 단축</div>
         </div>
+        <button
+          className="metric"
+          onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        >
+          <div className="label">검토 대기</div>
+          <div className="value">
+            {pending.length}
+            <small> 건</small>
+          </div>
+          <div className="sub">
+            {!connected
+              ? "실시간 연결 끊김 · 재연결 중…"
+              : analyzingCount > 0
+                ? `분석 중 ${analyzingCount}건`
+                : "실시간 반영"}
+          </div>
+        </button>
+        <button className="metric" onClick={() => navigate("/followups")}>
+          <div className="label">후속 처리 필요</div>
+          <div className="value">
+            {followupCount}
+            <small> 건</small>
+          </div>
+          <div className="sub">별도 탭에서 관리</div>
+        </button>
       </div>
 
       <div className="info-note stacked">
