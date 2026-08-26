@@ -7,6 +7,7 @@ CLAUDE.md
 
 # 로컬 전용 — 각자 프록시 대상 포트가 다를 수 있어 커밋 대상이 아니다
 .env.local
+.env.*.local
 
 # tsc -b 증분 빌드 캐시 — 타입체크 돌릴 때마다 바뀌어서 매번 diff에 뜬다
 *.tsbuildinfo
