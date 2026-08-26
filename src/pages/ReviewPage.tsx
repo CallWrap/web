@@ -20,7 +20,13 @@ function isSameValue(a: unknown, b: unknown): boolean {
   return a === b;
 }
 
+// 백엔드 CallFields 전체 — 값을 불러오고(fetch) 저장할 때(save) 빠짐없이 왕복시키는 용도.
+// grade/followup/faq는 이 화면에서 더 이상 편집하지 않지만, AI가 채운 원래 값 그대로
+// 실어 보내야 해서 여기엔 남아 있다 (편집 UI는 관리자 기능으로 이관).
 export const FIELD_ORDER: FieldKey[] = ['type', 'category', 'subcategory', 'grade', 'summary', 'followup', 'faq'];
+
+// 이 화면에서 실제로 보여주고 편집하는 필드만 — 근거 하이라이트·수정 카운트는 이 기준으로 잡는다.
+export const REVIEW_FIELD_ORDER: FieldKey[] = ['type', 'category', 'subcategory', 'summary'];
 
 export function ReviewPage() {
   const { callId = '' } = useParams();
@@ -96,7 +102,7 @@ export function ReviewPage() {
 
   const evidenceIds = useMemo(() => {
     const set = new Set<string>();
-    if (call) FIELD_ORDER.forEach((k) => call.fields[k].evidence.forEach((id) => set.add(id)));
+    if (call) REVIEW_FIELD_ORDER.forEach((k) => call.fields[k].evidence.forEach((id) => set.add(id)));
     return set;
   }, [call]);
 
@@ -126,7 +132,7 @@ export function ReviewPage() {
   }
 
   // summary는 객체라 참조 비교(!==)로는 "되돌렸는데 수정됨"이 남는다 — 값으로 비교한다.
-  const editedKeys = FIELD_ORDER.filter((k) => !isSameValue(values[k], call.fields[k].value));
+  const editedKeys = REVIEW_FIELD_ORDER.filter((k) => !isSameValue(values[k], call.fields[k].value));
 
   function registerRef(id: string, el: HTMLDivElement | null) {
     if (el) uttRefs.current.set(id, el);
@@ -161,7 +167,6 @@ export function ReviewPage() {
       type: String(values.type),
       category: String(values.category),
       subcategory: String(values.subcategory),
-      grade: String(values.grade),
     });
     if (invalidField) {
       pushToast(`${fieldLabel[invalidField]} 항목을 선택해 주세요.`);

@@ -24,7 +24,6 @@ test('저장 전에 분류값과 중·소분류 조합을 검증한다', () => {
       type: '자료확인',
       category: '대상자관리',
       subcategory: '대상자정보',
-      grade: '칭찬콜',
     }),
     null,
   );
@@ -33,7 +32,6 @@ test('저장 전에 분류값과 중·소분류 조합을 검증한다', () => {
       type: '자료확인',
       category: '대상자관리',
       subcategory: '제공기관정보',
-      grade: '칭찬콜',
     }),
     'subcategory',
   );
@@ -42,7 +40,6 @@ test('저장 전에 분류값과 중·소분류 조합을 검증한다', () => {
       type: '알 수 없는 유형',
       category: '대상자관리',
       subcategory: '대상자정보',
-      grade: '칭찬콜',
     }),
     'type',
   );

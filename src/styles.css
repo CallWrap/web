@@ -16,7 +16,7 @@
 
   /* brand/action = 승인·이동에 쓰는 유일한 액센트 색 */
   --brand:     #4f46e5;
-  --brand-ink: #3730a3;
+  --brand-ink: #121112;
   --brand-bg:  #eef0fd;
 
   /* tier colors: high=trust ink(emerald), medium=caution ink(amber), low=빈칸(neutral, 점선) */
@@ -35,7 +35,7 @@
   --danger-bg: #fdecef;
   --danger-bd: #f0b7c1;
 
-  --praise:    #be185d;
+  --praise:    #135eff;
   --praise-bg: #fdf1f6;
   --praise-bd: #f3bcd4;
 
@@ -113,7 +113,6 @@ a { color: inherit; text-decoration: none; }
   border-radius: 999px; border: 1.5px solid var(--surface);
 }
 .rail-badge.alert { background: var(--danger); }
-.rail-divider { width: 26px; height: 1px; background: var(--border); margin: 8px 0; }
 .rail-spacer { flex: 1; }
 
 .sidebar-scrim {
@@ -430,7 +429,7 @@ a { color: inherit; text-decoration: none; }
 }
 .field.tier-high   { border-color: var(--high-bd); }
 .field.tier-medium { border-color: var(--medium-bd); }
-.field.tier-low    { border: 1.5px dashed var(--low-bd); background: var(--low-bg); }
+.field.tier-low    { border-color: var(--low-bd); }
 
 .field .fhead {
   display: flex; align-items: center; gap: 8px;
@@ -454,37 +453,64 @@ a { color: inherit; text-decoration: none; }
 .field .fhead .conf { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .field .fhead .spacer { flex: 1; }
 .field .fhead .toggle {
-  padding: 5px 3px;
-  font-size: 13px; color: var(--text-2); font-weight: 600;
-  background: none; border: none;
+  padding: 5px 9px;
+  font-size: 12.5px; color: var(--text-2); font-weight: 600;
+  background: none; border: none; border-radius: 999px;
 }
-.field .fhead .toggle:hover { color: var(--brand-ink); }
+.field .fhead .toggle:hover { background: var(--surface-2); color: var(--text); }
 
-.field .fbody { padding: 0 13px 13px; }
+.field .fhead .classify-edit-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px 6px 11px; border: none; border-radius: 999px;
+  background: var(--brand); color: #fff; font-size: 12.5px; font-weight: 700;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.35);
+}
+.field .fhead .classify-edit-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+.field .fhead .classify-edit-btn:hover { background: var(--brand-ink); box-shadow: 0 2px 6px rgba(18, 17, 18, 0.3); }
+
+.field .fbody { padding: 12px 13px 14px; }
 
 .field input[type='text'], .field textarea, .field select {
-  width: 100%; font: inherit; font-size: 13.5px;
+  width: 100%; font: inherit; font-size: 13.5px; line-height: 1.55;
   padding: 8px 10px; border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm); background: #fff; color: var(--text);
-  resize: vertical;
 }
+.field textarea { resize: none; overflow: hidden; }
 .field input:focus, .field textarea:focus, .field select:focus {
   outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-bg);
 }
-.field .low-hint {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 12.5px; color: var(--medium); font-weight: 600;
-  margin: 8px 0 2px;
+.field .ai-note {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; color: var(--text-3); line-height: 1.5;
+  margin: 0 0 10px;
 }
+.field .ai-note svg { flex-shrink: 0; margin-top: 1px; }
+
+/* 상담분류 — 접힌 요약 칩 */
+.classify-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.classify-chip { display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.classify-chip .k { font-size: 11px; color: var(--text-3); font-weight: 700; }
+.classify-chip .v { font-size: 13px; color: var(--text); font-weight: 600; }
+
+/* 상담분류 — 단계 위저드 */
+.wz-breadcrumb { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+.wz-crumb { display: flex; align-items: center; gap: 7px; padding: 6px 4px; border: none; background: none; font-size: 12.5px; font-weight: 700; color: var(--text-3); border-radius: 6px; }
+.wz-crumb:hover { background: var(--surface-2); }
+.wz-crumb .n { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10.5px; background: var(--surface-2); color: var(--text-3); flex-shrink: 0; }
+.wz-crumb.active { color: var(--brand-ink); }
+.wz-crumb.active .n { background: var(--brand); color: #fff; }
+.wz-step-label { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.wz-step-label strong { color: var(--text-2); }
+.wz-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+
 .field .evidence-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.field .ev-note { font-size: 11.5px; color: var(--text-3); align-self: center; }
 .field .ev-link {
   font-size: 11.5px; color: var(--brand-ink); font-weight: 600;
   background: var(--brand-bg); border: 1px solid var(--high-bd);
   padding: 3px 9px; border-radius: 999px;
 }
 .field .ev-link:hover { background: var(--high-bg); }
-.field .check-row { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
-.field .check-row input { width: 17px; height: 17px; accent-color: var(--brand); }
 .field .edited-tag {
   font-size: 11px; color: var(--brand-ink); font-weight: 600;
   background: var(--brand-bg); padding: 1px 7px; border-radius: 999px;
@@ -545,93 +571,6 @@ a { color: inherit; text-decoration: none; }
 .floating-toolbar .btn.ghost { background: transparent; border-color: transparent; color: #d8dae4; }
 .floating-toolbar .btn.ghost:hover { background: rgba(255, 255, 255, 0.12); }
 
-/* ── 스마트 트리아지 — AI 확신 항목은 일괄 승인, 나머지만 근거와 함께 순서대로 ── */
-.triage-confidence-card {
-  background: transparent;
-}
-.triage-bulk {
-  display: flex; align-items: center; gap: 10px;
-  min-height: 50px; padding: 9px 15px;
-  background: var(--high-bg); border: 1px solid var(--high-bd);
-  border-radius: var(--radius-sm);
-}
-.triage-bulk.done { background: var(--high-bg); }
-.triage-bulk .txt { font-size: 13.5px; font-weight: 700; color: var(--high); flex: 1; }
-.triage-bulk.done .txt { color: var(--text-2); }
-.triage-bulk .btn { min-width: 112px; }
-
-.triage-quiet {
-  display: flex; flex-direction: column; overflow: hidden;
-  margin-top: 10px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.triage-confidence-card .triage-quiet > .field {
-  border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0;
-}
-.triage-confidence-card .triage-quiet > :first-child { border-top: 0; }
-.triage-confidence-card .triage-quiet > .field .fhead {
-  min-height: 50px; padding: 7px 15px;
-}
-.triage-confidence-card .triage-quiet > .field .fhead .flabel {
-  font-size: 13.5px;
-}
-.triage-quiet-row .quiet-toggle {
-  width: 80px; justify-self: end; padding: 5px 3px;
-  font-size: 13.5px; color: var(--brand-ink); font-weight: 400;
-  background: transparent; border: none; border-radius: 6px;
-}
-.triage-quiet-row .quiet-toggle:hover { background: var(--brand-bg); }
-.triage-quiet-row {
-  display: grid; grid-template-columns: 138px minmax(0, 1fr) 80px;
-  align-items: center; gap: 12px; min-height: 50px; padding: 7px 15px;
-  border-top: 1px solid var(--border);
-  font-size: 13.5px; color: var(--text-3);
-}
-.triage-quiet-row.done { color: var(--text-2); }
-.triage-quiet-row .k { font-weight: 700; color: var(--text-2); }
-.triage-quiet-row .quiet-value-cell {
-  min-width: 0; display: flex; align-items: center; gap: 8px;
-}
-.triage-quiet-row .quiet-input,
-.triage-quiet-row .quiet-textarea {
-  min-width: 0; flex: 1; font: inherit; color: var(--text-2);
-  border: 1px solid transparent; background: transparent;
-  border-radius: 6px; padding: 3px 6px; resize: vertical;
-}
-.triage-quiet-row .quiet-textarea { line-height: 1.5; }
-.triage-quiet-row .quiet-input:hover,
-.triage-quiet-row .quiet-textarea:hover { background: var(--surface-2); }
-.triage-quiet-row .quiet-input:focus,
-.triage-quiet-row .quiet-textarea:focus {
-  outline: none; background: #fff; border-color: var(--brand); color: var(--text);
-  box-shadow: 0 0 0 3px var(--brand-bg);
-}
-.triage-quiet-row .quiet-check {
-  display: flex; align-items: center; gap: 6px; width: fit-content;
-  padding: 4px 9px; border-radius: 999px;
-  background: var(--surface-2); color: var(--text-2); font-weight: 400;
-}
-.triage-quiet-row .quiet-check.checked { background: var(--brand-bg); color: var(--brand-ink); }
-.triage-quiet-row .quiet-check input { width: 14px; height: 14px; accent-color: var(--brand); }
-.triage-quiet-row .quiet-value {
-  flex: 1; min-width: 0;
-  color: var(--text-2); font-weight: 400;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.triage-quiet-row .quiet-value.value-chip {
-  flex: 0 1 auto; width: fit-content; padding: 4px 10px;
-  border-radius: 999px; background: var(--surface-2);
-  color: var(--text); font-weight: 400;
-}
-
-.triage-divider {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 12.5px; font-weight: 700; color: var(--medium);
-  letter-spacing: 0.01em; margin: 2px 0 -2px;
-}
-.triage-divider .line { flex: 1; height: 1px; background: var(--medium-bd); }
-
-.triage-rest-list { display: flex; flex-direction: column; gap: 12px; }
 
 /* ── Followups ── */
 .followup-card {

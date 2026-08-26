@@ -42,13 +42,12 @@ export const CONSULTATION_CATEGORIES: readonly string[] = Object.keys(SUBCATEGOR
 
 export const CONSULTATION_GRADES: readonly string[] = ['일반', '칭찬콜', '악성콜'];
 
-export type ClassificationField = 'type' | 'category' | 'subcategory' | 'grade';
+export type ClassificationField = 'type' | 'category' | 'subcategory';
 
 interface ClassificationValues {
   type: string;
   category: string;
   subcategory: string;
-  grade: string;
 }
 
 export function getSubcategoryOptions(category: string): readonly string[] {
@@ -59,10 +58,10 @@ export function normalizeSubcategoryForCategory(category: string, subcategory: s
   return getSubcategoryOptions(category).includes(subcategory) ? subcategory : '';
 }
 
+// 상담등급은 검토분석 화면에서 빠지고 관리자 기능으로 옮겨가서 여기서는 검증하지 않는다.
 export function findInvalidClassificationField(values: ClassificationValues): ClassificationField | null {
   if (!CONSULTATION_TYPES.includes(values.type)) return 'type';
   if (!CONSULTATION_CATEGORIES.includes(values.category)) return 'category';
   if (!getSubcategoryOptions(values.category).includes(values.subcategory)) return 'subcategory';
-  if (!CONSULTATION_GRADES.includes(values.grade)) return 'grade';
   return null;
 }
