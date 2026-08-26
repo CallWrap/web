@@ -98,6 +98,7 @@ export interface BackendCounselorMe {
   counselorId: string;
   name: string;
   loginId: string;
+  role: 'COUNSELOR' | 'ADMIN';
 }
 
 export interface BackendAudioUploadUrlResponse {
