@@ -39,6 +39,8 @@ export interface BackendReviewSummary {
   callStartedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 확정 시각. 검토 전이면 null(non_null 직렬화라 응답에서 아예 빠질 수도 있음) */
+  confirmedAt?: string | null;
 }
 
 export interface BackendReviewListResponse {

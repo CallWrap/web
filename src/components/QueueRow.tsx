@@ -13,6 +13,29 @@ function confidenceSummary(call: Call): { high: number; total: number; tiers: Ti
   };
 }
 
+/** AI가 확신하고 넘어간 항목 비율 — 퍼센트 + 진행률 바로 "얼마나 손대야 하는지" 한눈에 보여준다. */
+function ConfidenceMeter({ high, total, tiers }: { high: number; total: number; tiers?: Tier[] }) {
+  const pct = total > 0 ? Math.round((high / total) * 100) : 0;
+  const level = pct >= 80 ? 'high' : pct >= 40 ? 'medium' : 'low';
+  return (
+    <span className="ai-summary">
+      <span className="ai-summary-line">
+        AI 확신 <strong className={`pct ${level}`}>{pct}%</strong>
+      </span>
+      <span className="confidence-bar" aria-hidden>
+        <i className={level} style={{ width: `${pct}%` }} />
+      </span>
+      {tiers && (
+        <span className="tier-dots" aria-hidden>
+          {tiers.map((t, i) => (
+            <span key={i} className={`dot ${t}`} />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function QueueRow({ call }: { call: Call }) {
   const navigate = useNavigate();
   const analyzing = call.status === 'analyzing';
@@ -33,8 +56,8 @@ export function QueueRow({ call }: { call: Call }) {
       </div>
 
       <div className="mid">
-        <div className="title">{call.title ?? EMPTY.title}</div>
         <div className="line1">
+          <span className="title">{call.title ?? EMPTY.title}</span>
           <StatusBadge status={call.status} />
           <GradeBadge grade={call.grade} />
         </div>
@@ -49,22 +72,11 @@ export function QueueRow({ call }: { call: Call }) {
         {analyzing ? (
           <span className="ai-summary">AI가 후처리 폼을 채우는 중…</span>
         ) : call.isSummary && call.confidenceSummary ? (
-          <span className="ai-summary">
-            AI 확신 <strong>{call.confidenceSummary.high}/{call.confidenceSummary.total}</strong> 항목
-          </span>
+          <ConfidenceMeter high={call.confidenceSummary.high} total={call.confidenceSummary.total} />
         ) : (
-          <span className="ai-summary">
-            <span>
-              AI 확신 <strong>{high}/{total}</strong> 항목
-            </span>
-            <span className="tier-dots" aria-hidden>
-              {tiers.map((t, i) => (
-                <span key={i} className={`dot ${t}`} />
-              ))}
-            </span>
-          </span>
+          <ConfidenceMeter high={high} total={total} tiers={tiers} />
         )}
-        <span className="btn sm primary" aria-hidden style={{ pointerEvents: 'none', opacity: analyzing ? 0.4 : 1 }}>
+        <span className="btn sm high" aria-hidden style={{ pointerEvents: 'none', opacity: analyzing ? 0.4 : 1 }}>
           검토 →
         </span>
       </div>
