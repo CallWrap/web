@@ -293,10 +293,13 @@
   flex: 1; min-width: 0; font-size: 11.5px;
   white-space: nowrap; overflow: hidden;
 }
+/* 시각과 발화ID를 붙여 쓰면 "00:50U06"처럼 읽혀서 사이를 벌린다 */
 .cw-line-meta {
-  width: 62px; flex: none; text-align: right;
+  width: 62px; flex: none;
+  display: flex; justify-content: flex-end; gap: 6px;
   font-size: 10.5px; color: var(--c-text-3);
 }
+.cw-line-meta i { font-style: normal; }
 /* 검색 일치 — 근거 발화 음영과는 별개. 근거 발화는 전사문에 색칠하지 않는다 */
 .cw-line.hit { background: #fffbe8; }
 /* scrollToUtterance의 일시적 강조 (1.5초) */

@@ -246,9 +246,18 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
               }
               className={`cw-line ${u.speaker} ${hitSet.has(u.id) ? 'hit' : ''} ${flashId === u.id ? 'flash' : ''}`}
             >
-              <span className="cw-line-who">{first ? (u.speaker === 'client' ? '민원인' : '상담사') : ''}</span>
+              {/* 화자는 이어지는 칸에도 매번 찍는다 — 누구 말인지 칸마다 보여야 한다.
+                  시각·발화ID만 첫 칸에 한 번. */}
+              <span className="cw-line-who">{u.speaker === 'client' ? '민원인' : '상담사'}</span>
               <span className="cw-line-text">{text}</span>
-              <span className="cw-line-meta">{first ? `${mmss(u.ts)} ${u.id.toUpperCase()}` : ''}</span>
+              <span className="cw-line-meta">
+                {first && (
+                  <>
+                    <i>{mmss(u.ts)}</i>
+                    <i>{u.id.toUpperCase()}</i>
+                  </>
+                )}
+              </span>
             </div>
           ))
         )}
