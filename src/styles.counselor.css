@@ -81,25 +81,35 @@
 /* ── 상단바 (h 44) ───────────────────────────────────────── */
 .cw-top {
   height: 44px; flex: none;
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 14px;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 12px;
+  padding: 0 14px 0 8px;
   background: var(--c-panel);
   border-bottom: 1px solid var(--c-bd);
 }
+.cw-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cw-brand span { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+.cw-brand svg { flex: none; }
+.cw-status { display: flex; align-items: center; gap: 12px; justify-self: center; white-space: nowrap; }
+.cw-user { display: flex; align-items: center; gap: 10px; justify-self: end; }
 .cw-top h1 { margin: 0; font-size: 12.5px; font-weight: 700; }
 .cw-top .cw-date { font-size: 11px; color: var(--c-text-2); }
 .cw-vline { width: 1px; height: 14px; background: var(--c-bd); flex: none; }
 
-/* 카운터는 상자에 넣지 않는다 — 숫자만 15px Bold */
+/* 카운터는 상자에 넣지 않는다 — 숫자만 15px Bold.
+   색은 목록의 상태 배지와 같은 값을 쓴다(progressClass가 같은 클래스를 준다).
+   진하기는 선택한 콜과 무관하게 셋 다 동일하다. */
 .cw-count {
   display: flex; align-items: baseline; gap: 5px;
   background: none; border: none; padding: 0;
-  font-size: 11px; color: var(--c-text-2);
+  font-size: 11px;
 }
-.cw-count b { font-size: 15px; font-weight: 700; color: var(--c-text); }
-.cw-count.on, .cw-count.on b { color: var(--c-accent); font-weight: 700; }
+.cw-count b { font-size: 15px; font-weight: 700; color: inherit; }
+.cw-count.wait { color: var(--c-wait); }
+.cw-count.prog { color: var(--c-prog); }
+.cw-count.done { color: var(--c-done); }
 
-.cw-who { margin-left: auto; display: flex; align-items: baseline; gap: 5px; font-size: 11px; }
+.cw-who { display: flex; align-items: baseline; gap: 5px; font-size: 11px; }
 .cw-who b { font-weight: 700; }
 .cw-who span { color: var(--c-text-2); }
 .cw-logout {

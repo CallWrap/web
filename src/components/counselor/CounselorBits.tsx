@@ -52,6 +52,11 @@ const PROGRESS_CLASS: Record<Progress, string> = {
   완료: 'done',
 };
 
+/** 상태별 색 클래스. 목록 배지와 상단바 카운터가 같은 색을 쓰도록 한 곳에서 준다. */
+export function progressClass(value: Progress): string {
+  return PROGRESS_CLASS[value];
+}
+
 export function ProgressBadge({ value }: { value: Progress }) {
   return <span className={`cw-badge ${PROGRESS_CLASS[value]}`}>{value}</span>;
 }

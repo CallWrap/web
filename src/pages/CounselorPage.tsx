@@ -13,6 +13,7 @@ import {
   normalizeSubcategoryForCategory,
 } from '../lib/classificationOptions';
 import { FIELD_ORDER, type Values } from './ReviewPage';
+import { LogoMark } from '../components/icons';
 import { TranscriptBlock, type TranscriptHandle } from '../components/counselor/TranscriptBlock';
 import {
   CalendarIcon,
@@ -22,6 +23,7 @@ import {
   Menu,
   Popover,
   ProgressBadge,
+  progressClass,
   PROGRESS_STEPS,
   toISODate,
   type PopPos,
@@ -229,9 +231,6 @@ export function CounselorPage() {
     return c;
   }, [calls]);
 
-  // 현재 보고 있는 콜의 상태 — 상단바에서 이 카운터만 남색 Bold
-  const viewing: Progress | null = detail ? progressOf(detail.status) : null;
-
   const transcriptById = useMemo(() => {
     const m = new Map<string, Utterance>();
     detail?.transcript.forEach((u) => m.set(u.id, u));
@@ -344,20 +343,29 @@ export function CounselorPage() {
     <div className="cw">
       {/* ── 상단바 (h 44) ───────────────────────────────── */}
       <header className="cw-top">
-        <i className="cw-tick" />
-        <h1>오늘의 현황</h1>
-        <span className="cw-date">{today}</span>
-        <i className="cw-vline" />
-        {PROGRESS_STEPS.map((p) => (
-          <span key={p} className={`cw-count ${viewing === p ? 'on' : ''}`}>
-            {p} <b>{counters[p]}</b> 건
-          </span>
-        ))}
-        <div className="cw-who">
-          <b>{counselor?.name ?? NO_DATA}</b>
-          <span>{counselor?.role === 'ADMIN' ? '관리자' : '상담사'}</span>
+        <div className="cw-brand">
+          <LogoMark size={26} />
+          <span>CallWrap</span>
         </div>
-        <button className="cw-logout" onClick={handleLogout}>로그아웃</button>
+
+        <div className="cw-status">
+          <h1>오늘의 현황</h1>
+          <span className="cw-date">{today}</span>
+          <i className="cw-vline" />
+          {PROGRESS_STEPS.map((p) => (
+            <span key={p} className={`cw-count ${progressClass(p)}`}>
+              {p} <b>{counters[p]}</b> 건
+            </span>
+          ))}
+        </div>
+
+        <div className="cw-user">
+          <div className="cw-who">
+            <b>{counselor?.name ?? NO_DATA}</b>
+            <span>{counselor?.role === 'ADMIN' ? '관리자' : '상담사'}</span>
+          </div>
+          <button className="cw-logout" onClick={handleLogout}>로그아웃</button>
+        </div>
       </header>
 
       <div className="cw-body">

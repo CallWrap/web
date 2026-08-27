@@ -10,7 +10,7 @@ export function TrayIcon({ size = 16 }: IconProps) {
   );
 }
 
-/** 후속처리 — 되돌이 화살표 */
+/** 후속 처리 — 순환 화살표 */
 export function LoopIcon({ size = 16 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
