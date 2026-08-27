@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { Call, CallFields, CallStatus, FieldKey, SummaryValue, Utterance } from '../api/types';
 import { ApiError } from '../api/http';
 import { useCallStore } from '../store/callStore';
@@ -14,7 +14,7 @@ import {
   normalizeSubcategoryForCategory,
 } from '../lib/classificationOptions';
 import { FIELD_ORDER, type Values } from './ReviewPage';
-import { LogoMark } from '../components/icons';
+import { AppTopbar } from '../components/AppTopbar';
 import { TranscriptBlock, type TranscriptHandle } from '../components/counselor/TranscriptBlock';
 import {
   AnchoredMenu,
@@ -27,7 +27,6 @@ import {
   Menu,
   Popover,
   ProgressBadge,
-  progressClass,
   PROGRESS_STEPS,
   toISODate,
   type AnchorRect,
@@ -44,8 +43,6 @@ import '../styles.counselor.css';
 
 /** 백엔드가 아직 안 주는 값. 지어내지 않고 비어 있다는 사실을 그대로 보여준다. */
 const NO_DATA = '정보 없음';
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /** 분류·등급 5행. FAQ 요청만 boolean이라 표시 변환이 따로 붙는다. */
 const CLASS_ROWS: { key: FieldKey; label: string }[] = [
@@ -104,7 +101,6 @@ function stamp(d: Date): string {
 
 export function CounselorPage() {
   const { callId: routeCallId } = useParams();
-  const navigate = useNavigate();
 
   const calls = useCallStore((s) => s.calls);
   const loaded = useCallStore((s) => s.loaded);
@@ -115,7 +111,6 @@ export function CounselorPage() {
   const approveCall = useCallStore((s) => s.approveCall);
   const createFollowupNote = useCallStore((s) => s.createFollowupNote);
   const counselor = useAuthStore((s) => s.counselor);
-  const logout = useAuthStore((s) => s.logout);
   const pushToast = useToastStore((s) => s.push);
 
   useReviewStream();
@@ -173,11 +168,6 @@ export function CounselorPage() {
       // 저장만 못 할 뿐, 이번 세션 동안은 옮긴 자리가 유지된다
     }
   }
-
-  const today = useMemo(() => {
-    const d = new Date();
-    return `${toISODate(d)} (${WEEKDAYS[d.getDay()]})`;
-  }, []);
 
   useEffect(() => {
     loadQueue();
@@ -340,11 +330,6 @@ export function CounselorPage() {
     setSaving(false);
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate('/login', { replace: true });
-  }
-
   const evidenceIds = evidencePop && detail ? detail.fields[evidencePop].evidence : [];
   const evidenceLabel = evidencePop
     ? `${CLASS_ROWS.find((r) => r.key === evidencePop)?.label} · ${displayOf(evidencePop)}`
@@ -353,31 +338,7 @@ export function CounselorPage() {
   return (
     <div className="cw">
       {/* ── 상단바 (h 44) ───────────────────────────────── */}
-      <header className="cw-top">
-        <div className="cw-brand">
-          <LogoMark size={26} />
-          <span>CallWrap</span>
-        </div>
-
-        <div className="cw-status">
-          <h1>오늘의 현황</h1>
-          <span className="cw-date">{today}</span>
-          <i className="cw-vline" />
-          {PROGRESS_STEPS.map((p) => (
-            <span key={p} className={`cw-count ${progressClass(p)}`}>
-              {p} <b>{counters[p]}</b> 건
-            </span>
-          ))}
-        </div>
-
-        <div className="cw-user">
-          <div className="cw-who">
-            <b>{counselor?.name ?? NO_DATA}</b>
-            <span>{counselor?.role === 'ADMIN' ? '관리자' : '상담사'}</span>
-          </div>
-          <button className="cw-logout" onClick={handleLogout}>로그아웃</button>
-        </div>
-      </header>
+      <AppTopbar counters={counters} />
 
       <div className="cw-body">
         {/* ── 좌측 목록 (w 560) ─────────────────────────── */}

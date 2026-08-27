@@ -86,6 +86,10 @@ a { color: inherit; text-decoration: none; }
 
 /* ── App shell ── */
 .app { display: flex; min-height: 100vh; }
+/* 관리자 셸 — 공용 상단바가 전체 폭을 먹고, 그 아래로 레일 + 본문이 가로로 놓인다 */
+.app.admin-shell { display: grid; grid-template-rows: auto 1fr; grid-template-columns: 1fr; }
+.app.admin-shell > .sidebar-shell { grid-row: 2; grid-column: 1; justify-self: start; height: calc(100vh - 44px); top: 44px; }
+.app.admin-shell > .main { grid-row: 2; grid-column: 1; margin-left: 60px; }
 
 /* ── 사이드바 — 얇은 아이콘 레일 + "모니터" 클릭으로 여는 분류 패널("사이드바 안의 사이드바").
    레일은 항상 떠 있고, 패널은 모니터링 7개 탭만 담는다(대기열·후속·완료는 레일에 직접 있음). ── */

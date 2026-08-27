@@ -8,33 +8,8 @@ import { useCallStore } from './store/callStore';
 import { useAuthStore } from './store/authStore';
 import { ADMIN_TABS, ADMIN_TAB_ICONS } from './lib/adminTabs';
 import { ChartIcon, CheckIcon, LogoMark, LoopIcon, TrayIcon } from './components/icons';
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-
-function formatToday(d: Date): string {
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
-}
-
-/** 자정을 넘기면 날짜가 자동으로 바뀌도록 1분 간격으로 재계산한다.
- * 상담사가 화면을 새로고침하지 않고 밤을 넘겨 켜 두는 경우를 위한 것이다. */
-function useToday(): string {
-  const [today, setToday] = useState(() => formatToday(new Date()));
-  useEffect(() => {
-    const id = setInterval(() => setToday(formatToday(new Date())), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  return today;
-}
-
-function Topbar() {
-  const today = useToday();
-  return (
-    <div className="topbar">
-      <div className="spacer" />
-      <span className="today">{today}</span>
-    </div>
-  );
-}
+import { AppTopbar, type TopbarCounters } from './components/AppTopbar';
+import { getReviewStats } from './api/api';
 
 /** 얇은 아이콘 레일 + "모니터" 클릭으로 여는 분류 패널("사이드바 안의 사이드바"). 대기열·후속·
  * 완료는 레일에 바로 있어 패널에 중복으로 안 넣는다 — 패널엔 모니터링 7개 탭만.
@@ -125,11 +100,40 @@ function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+/**
+ * 관리자 상단바. 상담사와 달리 목록(useCallStore.calls)이 상담사별로 필터링돼 비어 있으므로
+ * 카운터는 전체 집계 API(/api/reviews/stats)에서 받는다.
+ * 검토 대기 = NEEDS_HUMAN_REVIEW + DONE (둘 다 상담사 확인 대기 상태),
+ * 진행 중 / 완료 = 확정된 콜을 후속 처리 필요 여부로 나눈 값.
+ */
+function AdminTopbar() {
+  const [counters, setCounters] = useState<TopbarCounters>({ '검토 대기': 0, '진행 중': 0, 완료: 0 });
+
+  useEffect(() => {
+    let alive = true;
+    getReviewStats()
+      .then((s) => {
+        if (!alive) return;
+        setCounters({
+          '검토 대기': (s.statusCounts.NEEDS_HUMAN_REVIEW ?? 0) + (s.statusCounts.DONE ?? 0),
+          '진행 중': s.inProgressCount ?? 0,
+          완료: s.completedCount ?? 0,
+        });
+      })
+      // 집계 실패는 조용히 넘어간다 — 0으로 두면 되고, 화면 전체를 막을 이유가 없다.
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return <AppTopbar counters={counters} />;
+}
+
 function AuthedApp() {
   const loadQueue = useCallStore((s) => s.loadQueue);
   const counselor = useAuthStore((s) => s.counselor);
   const { pathname } = useLocation();
-  const isReview = pathname.startsWith('/review');
   const isAdmin = counselor?.role === 'ADMIN';
   useEffect(() => {
     loadQueue();
@@ -160,10 +164,12 @@ function AuthedApp() {
   }
 
   return (
-    <div className="app">
-      {!isReview && <Sidebar isAdmin={isAdmin} />}
+    <div className="app admin-shell">
+      <div className="cw-bar admin-topbar">
+        <AdminTopbar />
+      </div>
+      <Sidebar isAdmin={isAdmin} />
       <div className="main">
-        {!isReview && <Topbar />}
         <Routes>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/:tab" element={<AdminPage />} />

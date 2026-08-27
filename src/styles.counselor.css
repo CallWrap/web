@@ -5,7 +5,8 @@
    전부 `.cw` 아래로 스코프한다 — 전역 :root 토큰을 갈아치우면 지시받지 않은
    관리자/로그인 화면까지 같이 바뀐다.
    ───────────────────────────────────────────────────────────── */
-.cw {
+.cw,
+.cw-bar {
   --c-bg:        #eef1f5;
   --c-panel:     #ffffff;
   --c-bd:        #d6dbe4;
@@ -31,21 +32,25 @@
   --c-r: 3px;
   --c-shadow: 0 6px 18px -2px rgba(18, 26, 41, 0.26);
 
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--c-bg);
   color: var(--c-text);
   font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
     'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   font-size: 11.5px;
   line-height: 1.5;
+}
+
+/* 상담사 화면은 전체 화면을 차지한다. 관리자 화면은 .cw-bar로 상단바만 가져다 쓴다. */
+.cw {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
   overflow: hidden;
 }
 
-.cw :where(button) { font: inherit; color: inherit; cursor: pointer; }
-.cw :where(input) { font: inherit; color: inherit; }
+.cw :where(button), .cw-bar :where(button) { font: inherit; color: inherit; cursor: pointer; }
+.cw :where(input), .cw-bar :where(input) { font: inherit; color: inherit; }
 
 /* 패널 제목 왼쪽 3x12 남색 세로 막대 */
 .cw-tick {
@@ -118,6 +123,9 @@
   border: none; border-radius: var(--c-r);
   font-size: 12px; font-weight: 700;
 }
+
+/* 관리자 화면은 상단바만 가져다 쓴다 — 전체 폭을 차지하고 아래로 기존 레일·본문이 이어진다 */
+.admin-topbar { flex: none; }
 
 /* ── 본문 (padding 12, 좌우 간격 10) ─────────────────────── */
 .cw-body { flex: 1; display: flex; gap: 10px; padding: 12px; min-height: 0; }

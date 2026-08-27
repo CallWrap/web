@@ -160,6 +160,10 @@ export interface BackendFaqBatchResult {
 export interface BackendReviewStats {
   totalCalls: number;
   statusCounts: Record<string, number>;
+  /** 확정된 콜을 후속 처리 필요 여부로 나눈 수 — 상단바의 "진행 중"/"완료".
+   *  statusCounts.CONFIRMED가 이 둘의 합이다. */
+  inProgressCount: number;
+  completedCount: number;
   gradeCounts: Record<string, number>;
   typeCounts: Record<string, number>;
   avgReviewSec: number | null;
