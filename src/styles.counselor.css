@@ -167,7 +167,9 @@
   background: var(--c-panel); border: 1px solid var(--c-bd);
   border-radius: var(--c-r); font-size: 11px;
 }
-.cw-filter > span { width: 50px; flex: none; text-align: left; }
+/* 표시값은 삼각형을 뺀 글자칸(50px) 안에서 가운데. 칸 폭이 고정이라
+   삼각형 위치는 그대로다. 드롭다운 목록은 왼쪽 정렬 유지(.cw-menu). */
+.cw-filter > span { width: 50px; flex: none; text-align: center; }
 .cw-filter:hover, .cw-filter.on { border-color: var(--c-accent); }
 
 /* 표 */
