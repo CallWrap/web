@@ -20,6 +20,33 @@ function mmss(sec: number): string {
   return `${`${m}`.padStart(2, '0')}:${`${s}`.padStart(2, '0')}`;
 }
 
+/* 한 칸 = 한 줄. 긴 발화는 칸을 두껍게 하지 않고 같은 화자로 다음 칸에 이어 붙인다.
+   글자 폭을 실제로 재야 하므로 canvas measureText를 쓴다(문자 수 어림은 한글/영문이 섞이면 어긋난다). */
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+function fitLines(text: string, maxWidth: number, font: string): string[] {
+  if (maxWidth <= 0) return [text];
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return [text];
+  measureCtx.font = font;
+
+  const lines: string[] = [];
+  let line = '';
+  for (const ch of text) {
+    if (line && measureCtx.measureText(line + ch).width > maxWidth) {
+      lines.push(line);
+      line = ch === ' ' ? '' : ch; // 줄 첫 글자가 공백이 되지 않게
+    } else {
+      line += ch;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length > 0 ? lines : [text];
+}
+
+/** 행에서 글자가 실제로 쓸 수 있는 폭 = 전체 - (좌우 padding 20 + 화자 46 + 시각 62 + gap 20) */
+const ROW_CHROME = 148;
+
 function durationLabel(sec: number | null): string {
   if (sec == null) return '통화 길이 미기록';
   return `통화 ${Math.floor(sec / 60)}분 ${`${Math.floor(sec % 60)}`.padStart(2, '0')}초`;
@@ -40,6 +67,28 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const uttRefs = useRef(new Map<string, HTMLDivElement>());
   const flashTimer = useRef<number | undefined>(undefined);
+  const [textWidth, setTextWidth] = useState(0);
+  const [font, setFont] = useState('11.5px sans-serif');
+
+  // 패널 폭이 바뀌면 줄 나눔을 다시 계산한다 (모니터·창 크기에 따라 달라진다)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    setFont(`${cs.fontSize} ${cs.fontFamily}`);
+    const ro = new ResizeObserver(() => setTextWidth(el.clientWidth - ROW_CHROME));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /** 발화를 화면 폭에 맞춰 여러 줄로 펼친 목록. 첫 줄에만 시각·발화ID를 찍는다. */
+  const lines = useMemo(
+    () =>
+      transcript.flatMap((u) =>
+        fitLines(u.text, textWidth, font).map((text, i) => ({ u, text, first: i === 0, key: `${u.id}-${i}` })),
+      ),
+    [transcript, textWidth, font],
+  );
 
   // 검색 일치 발화 — 이미 받아온 배열을 문자열 비교로 거른다(통신 없음, 지침 12절).
   const hits = useMemo(() => {
@@ -183,20 +232,23 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
         {transcript.length === 0 ? (
           <div className="cw-blank">전사문이 아직 없습니다.</div>
         ) : (
-          transcript.map((u) => (
+          lines.map(({ u, text, first, key }) => (
             <div
-              key={u.id}
-              ref={(el) => {
-                if (el) uttRefs.current.set(u.id, el);
-                else uttRefs.current.delete(u.id);
-              }}
-              className={`cw-utt ${u.speaker} ${hitSet.has(u.id) ? 'hit' : ''} ${flashId === u.id ? 'flash' : ''}`}
+              key={key}
+              // 스크롤 이동은 발화의 첫 줄을 기준으로 한다
+              ref={
+                first
+                  ? (el) => {
+                      if (el) uttRefs.current.set(u.id, el);
+                      else uttRefs.current.delete(u.id);
+                    }
+                  : undefined
+              }
+              className={`cw-line ${u.speaker} ${hitSet.has(u.id) ? 'hit' : ''} ${flashId === u.id ? 'flash' : ''}`}
             >
-              <div className="cw-utt-who">
-                <div className="r">{u.speaker === 'client' ? '민원인' : '상담사'}</div>
-                <div className="t">{mmss(u.ts)} {u.id.toUpperCase()}</div>
-              </div>
-              <div className="cw-utt-text">{u.text}</div>
+              <span className="cw-line-who">{first ? (u.speaker === 'client' ? '민원인' : '상담사') : ''}</span>
+              <span className="cw-line-text">{text}</span>
+              <span className="cw-line-meta">{first ? `${mmss(u.ts)} ${u.id.toUpperCase()}` : ''}</span>
             </div>
           ))
         )}

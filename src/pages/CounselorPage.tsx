@@ -486,9 +486,9 @@ export function CounselorPage() {
                   onClick={() => setSelectedId(c.callId)}
                 >
                   <span>{callSeq(c)}</span>
-                  <span className="cw-muted">{NO_DATA}</span>
-                  <span className="cw-muted">{NO_DATA}</span>
-                  <span className="cw-muted">{NO_DATA}</span>
+                  <span className={c.complainant?.name ? '' : 'cw-muted'}>{c.complainant?.name || NO_DATA}</span>
+                  <span className={c.complainant?.org ? '' : 'cw-muted'}>{c.complainant?.org || NO_DATA}</span>
+                  <span className={c.complainant?.phone ? '' : 'cw-muted'}>{c.complainant?.phone || NO_DATA}</span>
                   <span><ProgressBadge value={progressOf(c.status)} /></span>
                 </button>
               ))
@@ -516,11 +516,17 @@ export function CounselorPage() {
               </div>
               <div className="cw-prow">
                 <div className="cw-plabel">이름</div>
-                <div className="cw-pvalue name"><span className="cw-empty">{NO_DATA}</span></div>
+                <div className="cw-pvalue name">
+                  {detail.complainant?.name || <span className="cw-empty">{NO_DATA}</span>}
+                </div>
                 <div className="cw-plabel">전화번호</div>
-                <div className="cw-pvalue tel"><span className="cw-empty">{NO_DATA}</span></div>
+                <div className="cw-pvalue tel">
+                  {detail.complainant?.phone || <span className="cw-empty">{NO_DATA}</span>}
+                </div>
                 <div className="cw-plabel">소속</div>
-                <div className="cw-pvalue org"><span className="cw-empty">{NO_DATA}</span></div>
+                <div className="cw-pvalue org">
+                  {detail.complainant?.org || <span className="cw-empty">{NO_DATA}</span>}
+                </div>
                 <div className="cw-plabel">상담 이력</div>
                 <div className="cw-pvalue hist"><span className="cw-empty">이력 정보 없음</span></div>
               </div>
@@ -693,7 +699,7 @@ export function CounselorPage() {
                     className="cw-ev-utt"
                     onClick={() => transcriptRef.current?.scrollToUtterance(id)}
                   >
-                    <span className="cw-utt-who">
+                    <span className={`cw-utt-who ${u?.speaker === 'client' ? 'client' : 'agent'}`}>
                       <span className="r">{u?.speaker === 'client' ? '민원인' : '상담사'}</span>
                       <span className="t">{id.toUpperCase()}</span>
                     </span>

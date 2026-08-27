@@ -41,6 +41,14 @@ export interface BackendReviewSummary {
   updatedAt: string;
   /** 확정 시각. 검토 전이면 null(non_null 직렬화라 응답에서 아예 빠질 수도 있음) */
   confirmedAt?: string | null;
+  complainant?: BackendComplainant | null;
+}
+
+/** 민원인 정보. 백엔드가 아직 안 내려주면 필드 자체가 없다. */
+export interface BackendComplainant {
+  name?: string | null;
+  phone?: string | null;
+  org?: string | null;
 }
 
 export interface BackendReviewListResponse {
@@ -73,6 +81,7 @@ export interface BackendReviewDetail {
   failures: string[];
   confirmedAt: string | null;
   confirmedByCounselorId: string | null;
+  complainant?: BackendComplainant | null;
 }
 
 export interface BackendReviewCreateResponse {

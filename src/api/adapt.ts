@@ -176,6 +176,7 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     isSummary: true,
     confidenceSummary: { high: item.highConfidenceFieldCount, total: item.totalFieldCount },
     confirmedAt: item.confirmedAt ?? null,
+    complainant: item.complainant ?? null,
     failures: [], // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
   };
 }
@@ -214,6 +215,7 @@ export function toCall(detail: BackendReviewDetail): Call {
     fields,
     failures: detail.failures ?? [],
     confirmedAt: detail.confirmedAt,
+    complainant: detail.complainant ?? null,
     followupActions: needsFollowup ? defaultFollowupActions(detail.reviewId) : undefined,
   };
 }

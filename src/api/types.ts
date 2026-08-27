@@ -98,6 +98,16 @@ export interface Call {
    * 목록 API에선 안 옴 — 상세 조회에서만 채워짐.
    */
   failures: string[];
+  /** 민원인 이름·전화·소속. 백엔드 미지원이면 undefined */
+  complainant?: Complainant | null;
+}
+
+/** 민원인 정보. 백엔드가 아직 안 주는 경우가 많아 전부 optional이다
+ *  (백엔드_요청사항_상담사화면.md 1번). */
+export interface Complainant {
+  name?: string | null;
+  phone?: string | null;
+  org?: string | null;
 }
 
 export interface FollowupAction {
