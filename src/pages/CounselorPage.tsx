@@ -17,6 +17,8 @@ import { FIELD_ORDER, type Values } from './ReviewPage';
 import { LogoMark } from '../components/icons';
 import { TranscriptBlock, type TranscriptHandle } from '../components/counselor/TranscriptBlock';
 import {
+  AnchoredMenu,
+  anchorRectOf,
   CalendarIcon,
   CalendarPop,
   Caret,
@@ -27,6 +29,7 @@ import {
   progressClass,
   PROGRESS_STEPS,
   toISODate,
+  type AnchorRect,
   type PopPos,
   type Progress,
 } from '../components/counselor/CounselorBits';
@@ -134,6 +137,7 @@ export function CounselorPage() {
   const [datePop, setDatePop] = useState<'from' | 'to' | null>(null);
   const [filterPop, setFilterPop] = useState(false);
   const [selectPop, setSelectPop] = useState<FieldKey | null>(null);
+  const [selectRect, setSelectRect] = useState<AnchorRect | null>(null);
   const [evidencePop, setEvidencePop] = useState<FieldKey | null>(null);
 
   // ── 선택된 콜 ──────────────────────────────────────────
@@ -566,24 +570,20 @@ export function CounselorPage() {
                     <div className="cw-crow" key={key}>
                       <div className="cw-clabel">{label}</div>
                       <div className="cw-cval">
-                        <span className="cw-anchor" style={{ flex: 1, minWidth: 0, display: 'flex' }}>
-                          <button
-                            className={`cw-select ${selectPop === key ? 'on' : ''}`}
-                            onClick={() => setSelectPop(selectPop === key ? null : key)}
-                          >
-                            <span className={displayOf(key) ? '' : 'cw-empty'}>{displayOf(key) || '선택 필요'}</span>
-                            <Caret />
-                          </button>
-                          {selectPop === key && (
-                            <Popover onClose={() => setSelectPop(null)} className="cw-select-pop">
-                              <Menu
-                                options={optionsFor(key)}
-                                value={displayOf(key)}
-                                onPick={(opt) => pickOption(key, opt)}
-                              />
-                            </Popover>
-                          )}
-                        </span>
+                        <button
+                          className={`cw-select ${selectPop === key ? 'on' : ''}`}
+                          onClick={(e) => {
+                            if (selectPop === key) {
+                              setSelectPop(null);
+                              return;
+                            }
+                            setSelectRect(anchorRectOf(e.currentTarget));
+                            setSelectPop(key);
+                          }}
+                        >
+                          <span className={displayOf(key) ? '' : 'cw-empty'}>{displayOf(key) || '선택 필요'}</span>
+                          <Caret />
+                        </button>
 
                         <button
                           className="cw-evbtn"
@@ -656,6 +656,17 @@ export function CounselorPage() {
           </div>
         )}
       </div>
+
+      {/* 분류·등급 드롭다운 — 패널 overflow에 갇히지 않게 화면 기준으로 띄운다 */}
+      {selectPop && selectRect && values && (
+        <AnchoredMenu
+          rect={selectRect}
+          options={optionsFor(selectPop)}
+          value={displayOf(selectPop)}
+          onPick={(opt) => pickOption(selectPop, opt)}
+          onClose={() => setSelectPop(null)}
+        />
+      )}
 
       {/* 근거 발화 팝업 — 드래그로 옮길 수 있고, 옮긴 자리를 기억한다.
           바깥 클릭으로 닫지 않는다: 근거를 여러 개 눌러가며 확인해야 하므로. */}

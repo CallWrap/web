@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 /* ─────────────────────────────────────────────────────────────
    통합 검토 화면의 작은 조각들 — 아이콘 / 배지 / 오버레이 / 달력.
@@ -294,5 +294,75 @@ export function DragPopover({
     >
       {children}
     </div>
+  );
+}
+
+/* ── 칸 밖으로 나가는 드롭다운 ─────────────────────────────
+   분류·등급 패널은 세로로 눌릴 때를 대비해 overflow가 걸려 있다. 그 안에서
+   absolute로 열면 메뉴가 잘리고 그 칸에만 스크롤이 생긴다 — position:fixed로
+   띄워서 다른 칸 위로 넘어가게 한다. */
+
+export interface AnchorRect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+}
+
+export function anchorRectOf(el: HTMLElement): AnchorRect {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width };
+}
+
+const MENU_ROW = 26;
+const MENU_PAD = 8;
+const MENU_MAX = 260;
+const MENU_GAP = 7;
+
+export function AnchoredMenu<T extends string>({
+  rect,
+  options,
+  value,
+  onPick,
+  onClose,
+}: {
+  rect: AnchorRect;
+  options: readonly T[];
+  value: T;
+  onPick: (v: T) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    // 스크롤·리사이즈로 기준 위치가 어긋나면 그냥 닫는다(따라다니게 만들 값어치가 없다)
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onClose);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onClose);
+    };
+  }, [onClose]);
+
+  const height = Math.min(options.length * MENU_ROW + MENU_PAD, MENU_MAX);
+  const width = Math.max(rect.width, 120);
+  // 아래로 못 펼치면 위로 뒤집는다
+  const flipUp = rect.bottom + MENU_GAP + height > window.innerHeight && rect.top > height;
+  // 화면 오른쪽 끝을 넘으면 왼쪽으로 밀어 붙인다
+  const left = Math.max(4, Math.min(rect.left, window.innerWidth - width - 4));
+
+  const style: CSSProperties = flipUp
+    ? { left, bottom: window.innerHeight - rect.top + MENU_GAP, minWidth: width }
+    : { left, top: rect.bottom + MENU_GAP, minWidth: width };
+
+  return (
+    <>
+      <button className="cw-scrim" onClick={onClose} aria-label="닫기" tabIndex={-1} />
+      <div className="cw-fixedpop" style={style}>
+        <Menu options={options} value={value} onPick={onPick} />
+      </div>
+    </>
   );
 }
