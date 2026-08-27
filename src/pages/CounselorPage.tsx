@@ -23,6 +23,7 @@ import {
   CalendarPop,
   Caret,
   DragPopover,
+  GradeHistory,
   Menu,
   Popover,
   ProgressBadge,
@@ -69,15 +70,6 @@ function readEvPos(): PopPos | null {
   }
 }
 
-/** 후속 처리 이력 한 건. 백엔드에 저장 경로가 없어 화면 안에서만 산다. */
-interface Memo {
-  id: string;
-  at: string; // MM-DD HH:mm
-  text: string;
-  who: string;
-  fresh: boolean; // true면 입력칸, false면 글자만
-}
-
 /**
  * DB CallStatus → 화면의 진행 상황 3단계.
  * `진행 중`은 DB에 없는 상태라 기존 CONFIRMED+needsFollowup(= web의 followup)을 그대로 쓴다
@@ -118,8 +110,10 @@ export function CounselorPage() {
   const loaded = useCallStore((s) => s.loaded);
   const loadError = useCallStore((s) => s.loadError);
   const loadQueue = useCallStore((s) => s.loadQueue);
+  const refreshQueue = useCallStore((s) => s.refreshQueue);
   const fetchCall = useCallStore((s) => s.fetchCall);
   const approveCall = useCallStore((s) => s.approveCall);
+  const createFollowupNote = useCallStore((s) => s.createFollowupNote);
   const counselor = useAuthStore((s) => s.counselor);
   const logout = useAuthStore((s) => s.logout);
   const pushToast = useToastStore((s) => s.push);
@@ -130,7 +124,6 @@ export function CounselorPage() {
   // 기간은 `조회`를 눌러야 반영된다. 상태 필터는 고르는 즉시 걸린다(지침 4절).
   const [draftFrom, setDraftFrom] = useState(monthStartISO);
   const [draftTo, setDraftTo] = useState(todayISO);
-  const [range, setRange] = useState(() => ({ from: monthStartISO(), to: todayISO() }));
   const [statusFilter, setStatusFilter] = useState<'전체' | Progress>('전체');
 
   // ── 오버레이 4종 ───────────────────────────────────────
@@ -145,7 +138,8 @@ export function CounselorPage() {
   const [detail, setDetail] = useState<Call | undefined>();
   const [values, setValues] = useState<Values | null>(null);
   const [progress, setProgress] = useState<Progress>('검토 대기');
-  const [memos, setMemos] = useState<Memo[]>([]);
+  // 새로 쓰는 한 줄. null이면 입력칸 자체가 없다(기존 이력은 detail.followupNotes).
+  const [draft, setDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const enterTime = useRef(Date.now());
 
@@ -191,14 +185,9 @@ export function CounselorPage() {
 
   // ── 목록 필터링 ────────────────────────────────────────
   const rows = useMemo(() => {
-    return calls.filter((c) => {
-      if (statusFilter !== '전체' && progressOf(c.status) !== statusFilter) return false;
-      // 시작 시각이 없는 콜은 기간으로 판단할 수 없어 걸러내지 않는다.
-      const day = c.startedAt?.slice(0, 10);
-      if (day && (day < range.from || day > range.to)) return false;
-      return true;
-    });
-  }, [calls, statusFilter, range]);
+    // 기간은 서버가 이미 걸러서 준다(조회 버튼 → refreshQueue). 여기선 상태만 거른다.
+    return calls.filter((c) => statusFilter === '전체' || progressOf(c.status) === statusFilter);
+  }, [calls, statusFilter]);
 
   // 첫 진입 시 목록의 첫 콜을 자동으로 연다 — 우측이 빈 채로 남지 않게.
   useEffect(() => {
@@ -221,7 +210,7 @@ export function CounselorPage() {
         FIELD_ORDER.forEach((k) => (v[k] = c.fields[k].value));
         setValues(v as Values);
         setProgress(progressOf(c.status));
-        setMemos([]);
+        setDraft(null);
         enterTime.current = Date.now();
       }
     });
@@ -235,6 +224,8 @@ export function CounselorPage() {
     calls.forEach((call) => (c[progressOf(call.status)] += 1));
     return c;
   }, [calls]);
+
+  const notes = detail?.followupNotes ?? [];
 
   const transcriptById = useMemo(() => {
     const m = new Map<string, Utterance>();
@@ -284,12 +275,22 @@ export function CounselorPage() {
   }
 
   // ── 후속 처리 ──────────────────────────────────────────
-  function addMemo() {
-    setMemos((prev) => [
-      { id: `m${Date.now()}`, at: stamp(new Date()), text: '', who: counselor?.name ?? '', fresh: true },
-      // 기존 최신 건은 지난 건 형식으로 내려간다
-      ...prev.map((m) => ({ ...m, fresh: false })),
-    ]);
+  /** 입력칸의 내용을 확정 저장한다. 비어 있으면 그냥 입력칸만 닫는다. */
+  async function commitDraft() {
+    const content = (draft ?? '').trim();
+    if (!detail || !content) {
+      setDraft(null);
+      return;
+    }
+    try {
+      await createFollowupNote(detail.callId, content);
+      // 방금 쓴 줄까지 포함된 목록을 서버에서 다시 받아 온다
+      const fresh = await fetchCall(detail.callId);
+      if (fresh) setDetail(fresh);
+      setDraft(null);
+    } catch {
+      pushToast('후속 처리 저장에 실패했습니다 · 다시 시도해 주세요');
+    }
   }
 
   // ── 저장 / 취소 ────────────────────────────────────────
@@ -299,7 +300,7 @@ export function CounselorPage() {
     FIELD_ORDER.forEach((k) => (v[k] = detail.fields[k].value));
     setValues(v as Values);
     setProgress(progressOf(detail.status));
-    setMemos([]);
+    setDraft(null);
   }
 
   async function handleSave() {
@@ -326,7 +327,6 @@ export function CounselorPage() {
         followupNeeded,
       });
       setDetail(saved);
-      setMemos((prev) => prev.map((m) => ({ ...m, fresh: false })));
       pushToast(`${callSeq(detail)} 저장됨 · ${progress}`);
     } catch (err) {
       // 재확정 차단(409)은 "다시 시도"로 풀리지 않는다 — 백엔드가 콜당 1회만 확정을
@@ -436,7 +436,8 @@ export function CounselorPage() {
             <button
               className="cw-btn primary"
               style={{ width: 48, padding: 0 }}
-              onClick={() => setRange({ from: draftFrom, to: draftTo })}
+              // 서버에 기간을 넘겨 다시 받아온다 (size=100 밖의 과거 콜도 나오도록)
+              onClick={() => void refreshQueue({ from: draftFrom, to: draftTo })}
             >
               조회
             </button>
@@ -528,7 +529,13 @@ export function CounselorPage() {
                   {detail.complainant?.org || <span className="cw-empty">{NO_DATA}</span>}
                 </div>
                 <div className="cw-plabel">상담 이력</div>
-                <div className="cw-pvalue hist"><span className="cw-empty">이력 정보 없음</span></div>
+                <div className="cw-pvalue hist">
+                  {detail.complainant?.gradeCounts ? (
+                    <GradeHistory counts={detail.complainant.gradeCounts} />
+                  ) : (
+                    <span className="cw-empty">이력 정보 없음</span>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -613,34 +620,51 @@ export function CounselorPage() {
               <div className="cw-phead">
                 <i className="cw-tick" />
                 <h2>후속 처리</h2>
-                <span className="cw-sub">{memos.length}건</span>
+                <span className="cw-sub">{notes.length}건</span>
                 <span className="cw-rule" />
-                <button className="cw-btn" style={{ width: 56, padding: 0 }} onClick={addMemo}>+ 추가</button>
+                <button
+                  className="cw-btn"
+                  style={{ width: 56, padding: 0 }}
+                  onClick={() => setDraft('')}
+                  disabled={draft !== null}
+                >
+                  + 추가
+                </button>
               </div>
               <div className="cw-flist">
-                {memos.length === 0 ? (
+                {draft === null && notes.length === 0 ? (
                   <div className="cw-fempty">등록된 후속 처리가 없습니다.</div>
                 ) : (
-                  memos.map((m) => (
-                    <div className={`cw-frow ${m.fresh ? 'new' : ''}`} key={m.id}>
-                      <span className="cw-fdate">{m.at}</span>
-                      <span className="cw-fbody">
-                        {m.fresh ? (
+                  <>
+                    {draft !== null && (
+                      <div className="cw-frow new">
+                        <span className="cw-fdate">{stamp(new Date())}</span>
+                        <span className="cw-fbody">
                           <input
                             autoFocus
-                            value={m.text}
+                            value={draft}
                             placeholder="후속 처리 내용을 입력하세요"
-                            onChange={(e) =>
-                              setMemos((prev) => prev.map((x) => (x.id === m.id ? { ...x, text: e.target.value } : x)))
-                            }
+                            onChange={(e) => setDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') void commitDraft();
+                              if (e.key === 'Escape') setDraft(null);
+                            }}
+                            onBlur={() => void commitDraft()}
                           />
-                        ) : (
-                          <span className="cw-ftext">{m.text}</span>
-                        )}
-                      </span>
-                      <span className="cw-fwho">{m.who}</span>
-                    </div>
-                  ))
+                        </span>
+                        <span className="cw-fwho">{counselor?.name ?? ''}</span>
+                      </div>
+                    )}
+                    {notes.map((n) => (
+                      <div className="cw-frow" key={n.id}>
+                        <span className="cw-fdate">{stamp(new Date(n.createdAt))}</span>
+                        <span className="cw-fbody">
+                          <span className="cw-ftext">{n.content}</span>
+                        </span>
+                        <span className="cw-fwho">{n.counselorName}</span>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </section>

@@ -6,6 +6,7 @@
 import { apiFetch } from './http';
 import type {
   BackendAudioUploadUrlResponse,
+  BackendFollowupNote,
   BackendFaqBatchResult,
   BackendFaqEntry,
   BackendReviewCreateResponse,
@@ -20,8 +21,14 @@ import type { Call, FieldKey, SaveCallPayload } from './types';
  * 대기열 조회. 목록 API가 상태/시각만 주므로 fields/grade/transcript는 placeholder다
  * (Call.isSummary === true). 실제 값이 필요한 화면(검토 화면)은 getCall로 상세를 따로 받는다.
  */
-export async function getQueue(): Promise<Call[]> {
-  const res = await apiFetch<BackendReviewListResponse>('/api/reviews?page=0&size=100');
+export async function getQueue(range?: { from: string; to: string }): Promise<Call[]> {
+  // 기간을 서버에 넘긴다 — 클라이언트에서만 거르면 size=100 밖의 과거 콜이 조회돼도 안 나온다.
+  const qs = new URLSearchParams({ page: '0', size: '100' });
+  if (range) {
+    qs.set('from', range.from);
+    qs.set('to', range.to);
+  }
+  const res = await apiFetch<BackendReviewListResponse>(`/api/reviews?${qs}`);
   return res.items.map(toCallFromSummary);
 }
 
@@ -62,6 +69,17 @@ export async function saveCall(id: string, payload: SaveCallPayload): Promise<Ca
 
   const detail = await apiFetch<BackendReviewDetail>(`/api/reviews/${id}`);
   return toCall(detail);
+}
+
+/**
+ * 후속 처리 이력 작성. 작성만 하고 쌓는 로그라 수정·삭제 API는 없다.
+ * 상담사 제한이 없어 다른 상담사가 받은 콜에도 이어서 쓸 수 있다.
+ */
+export async function addFollowupNote(callId: string, content: string): Promise<BackendFollowupNote> {
+  return apiFetch<BackendFollowupNote>(`/api/reviews/${callId}/followup-notes`, {
+    method: 'POST',
+    body: { content },
+  });
 }
 
 /** 오디오 업로드용 presigned URL 발급 */

@@ -37,6 +37,8 @@ export interface BackendReviewSummary {
   highConfidenceFieldCount: number;
   totalFieldCount: number;
   callStartedAt: string | null;
+  /** 통화 길이(초). 백엔드 6-1로 목록에도 추가됨 */
+  callDurationSec?: number | null;
   createdAt: string;
   updatedAt: string;
   /** 확정 시각. 검토 전이면 null(non_null 직렬화라 응답에서 아예 빠질 수도 있음) */
@@ -49,6 +51,16 @@ export interface BackendComplainant {
   name?: string | null;
   phone?: string | null;
   org?: string | null;
+  /** 상세 조회에서만 옴. 키는 stats의 gradeCounts와 같은 한글 라벨. */
+  gradeCounts?: Record<string, number> | null;
+}
+
+/** POST /api/reviews/{id}/followup-notes 응답 · 상세의 followupNotes[] 원소 */
+export interface BackendFollowupNote {
+  id: string;
+  content: string;
+  counselorName: string;
+  createdAt: string;
 }
 
 export interface BackendReviewListResponse {
@@ -82,6 +94,7 @@ export interface BackendReviewDetail {
   confirmedAt: string | null;
   confirmedByCounselorId: string | null;
   complainant?: BackendComplainant | null;
+  followupNotes?: BackendFollowupNote[];
 }
 
 export interface BackendReviewCreateResponse {

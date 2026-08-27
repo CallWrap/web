@@ -167,7 +167,7 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     callNo: item.callNo ?? null,
     title: item.title ?? null,
     startedAt: item.callStartedAt ?? null,
-    durationSec: null, // TODO(백엔드 갭): 목록 API엔 call_duration_sec이 없음 — 상세에서만 나옴
+    durationSec: item.callDurationSec ?? null, // 백엔드 6-1로 목록에도 실려 온다
     status: mapCallStatus(item.status, needsFollowup),
     grade: mapGrade(item.grade),
     audioUrl: null, // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
@@ -216,6 +216,7 @@ export function toCall(detail: BackendReviewDetail): Call {
     failures: detail.failures ?? [],
     confirmedAt: detail.confirmedAt,
     complainant: detail.complainant ?? null,
+    followupNotes: detail.followupNotes ?? [],
     followupActions: needsFollowup ? defaultFollowupActions(detail.reviewId) : undefined,
   };
 }

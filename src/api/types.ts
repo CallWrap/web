@@ -100,6 +100,8 @@ export interface Call {
   failures: string[];
   /** 민원인 이름·전화·소속. 백엔드 미지원이면 undefined */
   complainant?: Complainant | null;
+  /** 후속 처리 이력(최신순). 상세 조회에서만 채워짐 */
+  followupNotes?: FollowupNote[];
 }
 
 /** 민원인 정보. 백엔드가 아직 안 주는 경우가 많아 전부 optional이다
@@ -108,6 +110,17 @@ export interface Complainant {
   name?: string | null;
   phone?: string | null;
   org?: string | null;
+  /** 등급별 누적 상담 횟수. 상세 조회에서만 온다(목록엔 없음).
+   *  키는 백엔드 라벨 그대로 — "일반"/"칭찬콜"/"악성콜"/"미판정". */
+  gradeCounts?: Record<string, number> | null;
+}
+
+/** 후속 처리 이력 한 줄. 백엔드가 저장한다(작성만 하고 쌓는 로그). */
+export interface FollowupNote {
+  id: string;
+  content: string;
+  counselorName: string;
+  createdAt: string;
 }
 
 export interface FollowupAction {

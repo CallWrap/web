@@ -57,6 +57,28 @@ export function progressClass(value: Progress): string {
   return PROGRESS_CLASS[value];
 }
 
+/** 상담 이력 배지. 백엔드 gradeCounts 키(한글 라벨)를 화면 표기로 줄여 쓴다. */
+const HISTORY_BADGES = [
+  { label: '악성', key: '악성콜', cls: 'bad' },
+  { label: '일반', key: '일반', cls: 'normal' },
+  { label: '칭찬', key: '칭찬콜', cls: 'praise' },
+] as const;
+
+export function GradeHistory({ counts }: { counts: Record<string, number> }) {
+  // 총계는 미판정까지 포함한 실제 상담 횟수다
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return (
+    <>
+      {HISTORY_BADGES.map(({ label, key, cls }) => (
+        <span key={key} className={`cw-badge ${cls}`}>
+          {label} {counts[key] ?? 0}
+        </span>
+      ))}
+      <span className="cw-hist-total">총 {total}건</span>
+    </>
+  );
+}
+
 export function ProgressBadge({ value }: { value: Progress }) {
   return <span className={`cw-badge ${PROGRESS_CLASS[value]}`}>{value}</span>;
 }
