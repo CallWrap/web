@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import type { Utterance } from '../../api/types';
-import { PauseShape, PlayShape } from './CounselorBits';
+import { PauseShape, PlayShape, SearchIcon } from './CounselorBits';
+import { canvasMeasure, fitLines } from './fitLines';
 
 /** 전사문 패널이 밖에 열어주는 동작 — 지침 6절 `scrollToUtterance`. */
 export interface TranscriptHandle {
@@ -20,32 +21,12 @@ function mmss(sec: number): string {
   return `${`${m}`.padStart(2, '0')}:${`${s}`.padStart(2, '0')}`;
 }
 
-/* 한 칸 = 한 줄. 긴 발화는 칸을 두껍게 하지 않고 같은 화자로 다음 칸에 이어 붙인다.
-   글자 폭을 실제로 재야 하므로 canvas measureText를 쓴다(문자 수 어림은 한글/영문이 섞이면 어긋난다). */
-let measureCtx: CanvasRenderingContext2D | null = null;
+/** 행에서 글자가 실제로 쓸 수 있는 폭 = 전체 - (좌우 padding 20 + 화자 48 + 시각 66 + gap 20).
+ *  styles.counselor.css의 .cw-line-who / .cw-line-meta 폭을 바꾸면 여기도 같이 고쳐야 한다. */
+const ROW_CHROME = 154;
 
-function fitLines(text: string, maxWidth: number, font: string): string[] {
-  if (maxWidth <= 0) return [text];
-  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
-  if (!measureCtx) return [text];
-  measureCtx.font = font;
-
-  const lines: string[] = [];
-  let line = '';
-  for (const ch of text) {
-    if (line && measureCtx.measureText(line + ch).width > maxWidth) {
-      lines.push(line);
-      line = ch === ' ' ? '' : ch; // 줄 첫 글자가 공백이 되지 않게
-    } else {
-      line += ch;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.length > 0 ? lines : [text];
-}
-
-/** 행에서 글자가 실제로 쓸 수 있는 폭 = 전체 - (좌우 padding 20 + 화자 46 + 시각 62 + gap 20) */
-const ROW_CHROME = 148;
+/** 소수점 반올림으로 마지막 글자가 살짝 잘리는 걸 막는 여유분 */
+const SAFETY_PAD = 6;
 
 function durationLabel(sec: number | null): string {
   if (sec == null) return '통화 길이 미기록';
@@ -68,26 +49,34 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
   const uttRefs = useRef(new Map<string, HTMLDivElement>());
   const flashTimer = useRef<number | undefined>(undefined);
   const [textWidth, setTextWidth] = useState(0);
-  const [font, setFont] = useState('11.5px sans-serif');
+  const [font, setFont] = useState('12.5px sans-serif');
+  // 실제로 글자가 그려지는 것과 똑같은 스타일을 가진 숨은 조각. 여기서 폰트를 읽어야
+  // 측정과 렌더가 어긋나지 않는다 — 컨테이너에서 읽으면 .cw-line-text의 크기가 아니라
+  // .cw가 물려준 크기를 재게 되고, 그만큼 한 줄에 과하게 채워 넣어 글자가 잘린다.
+  const probeRef = useRef<HTMLSpanElement | null>(null);
 
   // 패널 폭이 바뀌면 줄 나눔을 다시 계산한다 (모니터·창 크기에 따라 달라진다)
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const cs = getComputedStyle(el);
+    const probe = probeRef.current;
+    if (!el || !probe) return;
+    const cs = getComputedStyle(probe);
     setFont(`${cs.fontSize} ${cs.fontFamily}`);
-    const ro = new ResizeObserver(() => setTextWidth(el.clientWidth - ROW_CHROME));
+    // SAFETY_PAD: 반올림 때문에 마지막 글자가 1px 잘리는 걸 막는 여유분
+    const ro = new ResizeObserver(() => setTextWidth(el.clientWidth - ROW_CHROME - SAFETY_PAD));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   /** 발화를 화면 폭에 맞춰 여러 줄로 펼친 목록. 첫 줄에만 시각·발화ID를 찍는다. */
+  const measure = useMemo(() => canvasMeasure(font), [font]);
+
   const lines = useMemo(
     () =>
       transcript.flatMap((u) =>
-        fitLines(u.text, textWidth, font).map((text, i) => ({ u, text, first: i === 0, key: `${u.id}-${i}` })),
+        fitLines(u.text, textWidth, measure).map((text, i) => ({ u, text, first: i === 0, key: `${u.id}-${i}` })),
       ),
-    [transcript, textWidth, font],
+    [transcript, textWidth, measure],
   );
 
   // 검색 일치 발화 — 이미 받아온 배열을 문자열 비교로 거른다(통신 없음, 지침 12절).
@@ -202,13 +191,15 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
         )}
         {query.trim() && hits.length === 0 && <span className="cw-hits">0 / 0</span>}
 
-        <input
-          className="cw-input"
-          style={{ width: 200 }}
-          placeholder="전사문 내용 검색"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        {/* 돋보기는 상자 오른쪽에 고정하고, 글자는 그걸 뺀 나머지 폭의 가운데에 놓는다 */}
+        <span className="cw-search">
+          <input
+            placeholder="전사문 내용 검색"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <SearchIcon />
+        </span>
       </div>
 
       {audioUrl && (
@@ -229,6 +220,8 @@ export const TranscriptBlock = forwardRef<TranscriptHandle, Props>(function Tran
       )}
 
       <div className="cw-utts" ref={scrollRef}>
+        {/* 폰트 측정용 — 보이지 않지만 .cw-line-text와 같은 스타일을 받는다 */}
+        <span ref={probeRef} className="cw-line-text cw-probe" aria-hidden />
         {transcript.length === 0 ? (
           <div className="cw-blank">전사문이 아직 없습니다.</div>
         ) : (

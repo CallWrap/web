@@ -23,6 +23,15 @@ export function CalendarIcon() {
   );
 }
 
+export function SearchIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden>
+      <circle cx="6" cy="6" r="4.4" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.4 9.4 13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function PlayShape() {
   return (
     <svg width="8" height="9" viewBox="0 0 8 9" aria-hidden>

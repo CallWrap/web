@@ -72,8 +72,8 @@
   border-bottom: 1px solid var(--c-bd);
   border-radius: 2px 2px 0 0;
 }
-.cw-phead h2 { margin: 0; font-size: 12.5px; font-weight: 700; }
-.cw-phead .cw-sub { font-size: 11px; color: var(--c-text-3); font-weight: 400; }
+.cw-phead h2 { margin: 0; font-size: 13.5px; font-weight: 700; }
+.cw-phead .cw-sub { font-size: 12px; color: var(--c-text-3); font-weight: 400; }
 /* 제목과 오른쪽 컨트롤 사이를 밀어주는 스페이서. Figma엔 여기 얇은 실선이 있었지만
    실제로 보니 뜬금없는 선으로 읽혀서 뺐다 — 밀어주는 역할만 남긴다. */
 .cw-rule { flex: 1; min-width: 12px; }
@@ -83,17 +83,17 @@
   height: 44px; flex: none;
   display: grid; grid-template-columns: 1fr auto 1fr;
   align-items: center; gap: 12px;
-  padding: 0 14px 0 8px;
+  padding: 0 14px 0 12px;  /* 왼쪽 12 = 본문 padding과 같게 → 로고와 목록 패널 좌변 정렬 */
   background: var(--c-panel);
   border-bottom: 1px solid var(--c-bd);
 }
 .cw-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.cw-brand span { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+.cw-brand span { font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; }
 .cw-brand svg { flex: none; }
 .cw-status { display: flex; align-items: center; gap: 12px; justify-self: center; white-space: nowrap; }
 .cw-user { display: flex; align-items: center; gap: 10px; justify-self: end; }
-.cw-top h1 { margin: 0; font-size: 12.5px; font-weight: 700; }
-.cw-top .cw-date { font-size: 11px; color: var(--c-text-2); }
+.cw-top h1 { margin: 0; font-size: 13.5px; font-weight: 700; }
+.cw-top .cw-date { font-size: 12px; color: var(--c-text-2); }
 .cw-vline { width: 1px; height: 14px; background: var(--c-bd); flex: none; }
 
 /* 카운터는 상자에 넣지 않는다 — 숫자만 15px Bold.
@@ -102,21 +102,21 @@
 .cw-count {
   display: flex; align-items: baseline; gap: 5px;
   background: none; border: none; padding: 0;
-  font-size: 11px;
+  font-size: 12px;
 }
-.cw-count b { font-size: 15px; font-weight: 700; color: inherit; }
+.cw-count b { font-size: 16px; font-weight: 700; color: inherit; }
 .cw-count.wait { color: var(--c-wait); }
 .cw-count.prog { color: var(--c-prog); }
 .cw-count.done { color: var(--c-done); }
 
-.cw-who { display: flex; align-items: baseline; gap: 5px; font-size: 11px; }
+.cw-who { display: flex; align-items: baseline; gap: 5px; font-size: 12px; }
 .cw-who b { font-weight: 700; }
 .cw-who span { color: var(--c-text-2); }
 .cw-logout {
   width: 76px; height: 24px; flex: none;
   background: var(--c-logout); color: #fff;
   border: none; border-radius: var(--c-r);
-  font-size: 11px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
 }
 
 /* ── 본문 (padding 12, 좌우 간격 10) ─────────────────────── */
@@ -128,7 +128,7 @@
 .cw-btn {
   height: 22px; padding: 0 10px;
   background: var(--c-panel); border: 1px solid var(--c-bd);
-  border-radius: var(--c-r); font-size: 11px; color: var(--c-text-2);
+  border-radius: var(--c-r); font-size: 12px; color: var(--c-text-2);
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
 .cw-btn:hover { background: var(--c-head); }
@@ -136,13 +136,22 @@
 .cw-btn.primary:hover { background: #1a4085; }
 .cw-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-.cw-input {
-  height: 22px; padding: 0 8px;
+ /* 전사문 검색칸. 돋보기는 오른쪽 끝에 고정폭으로 두고 입력칸이 나머지를 채우므로,
+    글자의 가운데 정렬 기준이 "돋보기를 뺀 공간"이 된다. */
+.cw-search {
+  display: flex; align-items: center; gap: 4px;
+  width: 168px; height: 22px; padding: 0 7px;
   background: var(--c-panel); border: 1px solid var(--c-bd);
-  border-radius: var(--c-r); font-size: 11px;
+  border-radius: var(--c-r);
 }
-.cw-input::placeholder { color: var(--c-text-3); }
-.cw-input:focus { outline: none; border-color: var(--c-accent); }
+.cw-search:focus-within { border-color: var(--c-accent); }
+.cw-search input {
+  flex: 1; min-width: 0;
+  border: none; background: none; outline: none;
+  font-size: 12px; text-align: center;
+}
+.cw-search input::placeholder { color: var(--c-text-3); }
+.cw-search svg { flex: none; color: var(--c-text-3); }
 
 /* 드롭다운 화살표 — 벡터 삼각형 10 x 6.2 (폰트 글리프 아님) */
 .cw-caret { width: 10px; height: 6.2px; flex: none; }
@@ -151,17 +160,18 @@
 /* ── 좌측 목록 ───────────────────────────────────────────── */
 .cw-range { display: flex; align-items: center; gap: 8px; }
 .cw-datebtn {
-  width: 104px; height: 22px; padding: 0 8px;
+  width: 118px; height: 22px; padding: 0 8px;
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   background: var(--c-panel); border: 1px solid var(--c-bd);
-  border-radius: var(--c-r); font-size: 11px;
+  border-radius: var(--c-r); font-size: 12px;
+  white-space: nowrap; /* 폭이 모자라도 절대 두 줄로 접히지 않게 */
 }
 .cw-datebtn:hover, .cw-datebtn.on { border-color: var(--c-accent); }
 .cw-datebtn svg { flex: none; color: var(--c-text-2); }
 .cw-tilde { color: var(--c-text-3); }
 
 .cw-filter {
-  width: 80px; height: 22px; padding: 0 7px;
+  width: 84px; height: 22px; padding: 0 7px;
   display: flex; align-items: center; justify-content: flex-start; gap: 6px;
   white-space: nowrap;
   background: var(--c-panel); border: 1px solid var(--c-bd);
@@ -169,13 +179,13 @@
 }
 /* 표시값은 삼각형을 뺀 글자칸(50px) 안에서 가운데. 칸 폭이 고정이라
    삼각형 위치는 그대로다. 드롭다운 목록은 왼쪽 정렬 유지(.cw-menu). */
-.cw-filter > span { width: 50px; flex: none; text-align: center; }
+.cw-filter > span { width: 54px; flex: none; text-align: center; }
 .cw-filter:hover, .cw-filter.on { border-color: var(--c-accent); }
 
 /* 표 */
 .cw-thead, .cw-row {
   display: grid;
-  grid-template-columns: 84px 62px 140px minmax(0, 1fr) 58px;
+  grid-template-columns: 84px 62px 140px minmax(0, 1fr) 68px;
   gap: 8px;
   align-items: center;
   padding: 0 10px;
@@ -184,7 +194,7 @@
   height: 28px; flex: none;
   background: var(--c-head);
   border-bottom: 1px solid var(--c-bd);
-  font-size: 11px; font-weight: 700; color: var(--c-text-2);
+  font-size: 12px; font-weight: 700; color: var(--c-text-2);
 }
 /* 다섯 열 모두 가운데 정렬 — 소속만 왼쪽이면 값이 짧을 때 전화번호와 벌어져 보인다 */
 .cw-thead > *, .cw-row > * {
@@ -196,7 +206,7 @@
 .cw-row {
   width: 100%; height: 30px;
   background: none; border: none; border-bottom: 1px solid var(--c-line);
-  font-size: 11.5px; text-align: left;
+  font-size: 12.5px; text-align: left;
 }
 .cw-row:hover { background: var(--c-head); }
 .cw-row.sel { background: var(--c-selected); }
@@ -207,14 +217,14 @@
   height: 26px; flex: none;
   display: flex; align-items: center; gap: 8px; padding: 0 10px;
   border-top: 1px solid var(--c-bd);
-  font-size: 10.5px; color: var(--c-text-3);
+  font-size: 11.5px; color: var(--c-text-3);
 }
 
 /* 상태 배지 */
 .cw-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 19px; padding: 0 8px; border-radius: var(--c-r);
-  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  height: 20px; padding: 0 7px; border-radius: var(--c-r);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
 }
 .cw-badge.wait   { color: var(--c-wait);   background: var(--c-wait-bg); }
 .cw-badge.prog   { color: var(--c-prog);   background: var(--c-prog-bg); }
@@ -230,12 +240,12 @@
   width: 66px; flex: none;
   display: flex; align-items: center; justify-content: center;
   background: var(--c-head); border-right: 1px solid var(--c-line);
-  font-size: 12px; color: var(--c-text-2);
+  font-size: 13px; color: var(--c-text-2);
 }
 .cw-pvalue {
   display: flex; align-items: center; justify-content: center;
   padding: 0 6px; border-right: 1px solid var(--c-line);
-  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cw-pvalue:last-child { border-right: none; }
 .cw-pvalue.name { width: 96px; flex: none; }
@@ -243,10 +253,15 @@
 .cw-pvalue.org  { width: 106px; flex: none; }
 .cw-pvalue.hist { flex: 1; gap: 8px; }
 .cw-pvalue .cw-empty { color: var(--c-text-3); }
-.cw-hist-total { font-size: 11px; color: var(--c-text-2); }
+.cw-hist-total { font-size: 12px; color: var(--c-text-2); }
 
 /* ── 전사문 (h 268, 세로로 늘어남) ───────────────────────── */
 .cw-transcript { flex: 1 1 0; min-height: 110px; }
+
+/* 전사문 헤더는 요소가 많아 기본 gap 8로는 붙어 보인다 — 앞쪽 묶음만 따로 띄운다 */
+.cw-transcript .cw-phead .cw-sub { margin-left: 14px; }
+.cw-transcript .cw-play { margin-left: 16px; }
+.cw-transcript .cw-seek { margin-left: 10px; }
 
 /* 재생 버튼 — 껍데기는 두 상태가 완전히 동일, 안의 도형만 바뀐다 */
 .cw-play {
@@ -270,7 +285,7 @@
 }
 .cw-seek[disabled] { opacity: 0.45; cursor: not-allowed; }
 
-.cw-hits { font-size: 10.5px; color: var(--c-text-2); white-space: nowrap; }
+.cw-hits { font-size: 11.5px; color: var(--c-text-2); white-space: nowrap; }
 .cw-step {
   width: 18px; height: 22px; padding: 0; flex: none;
   background: none; border: 1px solid var(--c-bd); border-radius: var(--c-r);
@@ -284,22 +299,24 @@
    폭이 바뀌면 ROW_CHROME(148 = 좌우 padding 20 + 화자 46 + 시각 62 + gap 20)도 같이 맞춰야 한다. */
 .cw-line {
   display: flex; align-items: center; gap: 10px;
-  height: 26px; flex: none; padding: 0 10px;
+  height: 29px; flex: none; padding: 0 10px;
   border-bottom: 1px solid var(--c-line);
   transition: background 0.25s;
 }
-.cw-line-who { width: 46px; flex: none; font-size: 11px; font-weight: 700; }
+.cw-line-who { width: 48px; flex: none; font-size: 12px; font-weight: 700; }
 .cw-line.client .cw-line-who { color: var(--c-bad); }
 .cw-line.agent  .cw-line-who { color: var(--c-accent); }
 .cw-line-text {
-  flex: 1; min-width: 0; font-size: 11.5px;
+  flex: 1; min-width: 0; font-size: 12.5px;
   white-space: nowrap; overflow: hidden;
 }
+/* 폰트 측정 전용 — 자리를 차지하지 않는다 */
+.cw-probe { position: absolute; visibility: hidden; height: 0; flex: none; }
 /* 시각과 발화ID를 붙여 쓰면 "00:50U06"처럼 읽혀서 사이를 벌린다 */
 .cw-line-meta {
-  width: 62px; flex: none;
+  width: 66px; flex: none;
   display: flex; justify-content: flex-end; gap: 6px;
-  font-size: 10.5px; color: var(--c-text-3);
+  font-size: 11.5px; color: var(--c-text-3);
 }
 .cw-line-meta i { font-style: normal; }
 /* 검색 일치 — 근거 발화 음영과는 별개. 근거 발화는 전사문에 색칠하지 않는다 */
@@ -328,14 +345,14 @@
   width: 74px; flex: none;
   display: flex; justify-content: center; padding-top: 8px;
   background: var(--c-head); border-right: 1px solid var(--c-line);
-  font-size: 12px; color: var(--c-text-2);
+  font-size: 13px; color: var(--c-text-2);
 }
 .cw-srow.title .cw-slabel { align-items: center; padding-top: 0; }
 .cw-sval { flex: 1; min-width: 0; display: flex; }
 .cw-sval input, .cw-sval textarea {
   flex: 1; min-width: 0;
   padding: 8px 10px; border: none; background: none;
-  font: inherit; font-size: 11.5px; color: var(--c-text); resize: none;
+  font: inherit; font-size: 12.5px; color: var(--c-text); resize: none;
 }
 .cw-srow.title .cw-sval input { padding: 0 10px; }
 .cw-sval textarea { overflow-y: auto; line-height: 1.55; }
@@ -349,7 +366,7 @@
   width: 84px; flex: none;
   display: flex; align-items: center; justify-content: center;
   background: var(--c-head); border-right: 1px solid var(--c-line);
-  font-size: 12px; color: var(--c-text-2);
+  font-size: 13px; color: var(--c-text-2);
 }
 .cw-cval { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 8px; }
 
@@ -357,7 +374,7 @@
   flex: 1; min-width: 0; height: 22px; padding: 0 8px;
   display: flex; align-items: center; gap: 6px;
   background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
-  font-size: 11px;
+  font-size: 12px;
 }
 .cw-select:hover, .cw-select.on { border-color: var(--c-accent); }
 /* 드롭다운 값은 가운데 정렬, 화살표는 오른쪽 끝 */
@@ -369,7 +386,7 @@
 .cw-evbtn {
   width: 66px; height: 22px; flex: none; padding: 0;
   background: var(--c-accent); color: #fff; border: 1px solid var(--c-accent);
-  border-radius: var(--c-r); font-size: 11px; font-weight: 700;
+  border-radius: var(--c-r); font-size: 12px; font-weight: 700;
 }
 .cw-evbtn:hover { background: #1a4085; }
 .cw-evbtn[disabled] { opacity: 0.45; cursor: not-allowed; }
@@ -383,7 +400,7 @@
 }
 .cw-fdate {
   width: 86px; flex: none; text-align: center;
-  font-size: 11px; color: var(--c-text-2);
+  font-size: 12px; color: var(--c-text-2);
 }
 .cw-frow.new .cw-fdate { color: var(--c-accent); font-weight: 700; }
 .cw-fbody { flex: 1; min-width: 0; padding: 0 10px; }
@@ -392,17 +409,17 @@
 .cw-fbody input {
   width: 100%; height: 24px; padding: 0 9px;
   border: 1px solid var(--c-bd); border-radius: var(--c-r);
-  background: var(--c-panel); font-size: 11.5px;
+  background: var(--c-panel); font-size: 12.5px;
 }
 .cw-fbody input:focus { outline: none; border-color: var(--c-accent); }
-.cw-fbody .cw-ftext { padding: 0 10px; font-size: 11.5px; color: var(--c-text-2); }
+.cw-fbody .cw-ftext { padding: 0 10px; font-size: 12.5px; color: var(--c-text-2); }
 .cw-fwho {
   width: 58px; flex: none; text-align: center;
-  font-size: 11px; color: var(--c-text-3);
+  font-size: 12px; color: var(--c-text-3);
 }
 .cw-fempty {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--c-text-3);
+  font-size: 12px; color: var(--c-text-3);
 }
 
 /* ── 액션바 (h 44) ───────────────────────────────────────── */
@@ -411,7 +428,7 @@
   display: flex; align-items: center; gap: 10px; padding: 0 12px;
   background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
 }
-.cw-actions > .cw-lab { font-size: 11px; color: var(--c-text-2); font-weight: 700; }
+.cw-actions > .cw-lab { font-size: 12px; color: var(--c-text-2); font-weight: 700; }
 
 .cw-seg {
   display: flex; height: 26px; flex: none;
@@ -419,7 +436,7 @@
 }
 .cw-seg button {
   width: 84px; border: none; background: var(--c-panel);
-  font-size: 11px; color: var(--c-text-2);
+  font-size: 12px; color: var(--c-text-2);
 }
 .cw-seg button + button { border-left: 1px solid var(--c-bd); }
 .cw-seg button:hover { background: var(--c-head); }
@@ -429,7 +446,7 @@
 .cw-abtn {
   width: 84px; height: 26px; flex: none;
   background: var(--c-panel); border: 1px solid var(--c-bd);
-  border-radius: var(--c-r); font-size: 11px; color: var(--c-text-2);
+  border-radius: var(--c-r); font-size: 12px; color: var(--c-text-2);
 }
 .cw-abtn:hover { background: var(--c-head); }
 .cw-abtn.primary { background: var(--c-accent); border-color: var(--c-accent); color: #fff; font-weight: 700; }
@@ -451,7 +468,7 @@
 .cw-menu button {
   width: 100%; height: 26px; padding: 0 10px;
   display: flex; align-items: center; gap: 5px;
-  background: none; border: none; text-align: left; font-size: 11px;
+  background: none; border: none; text-align: left; font-size: 12px;
 }
 .cw-menu button:hover { background: var(--c-head); }
 .cw-menu button.on { background: var(--c-selected); font-weight: 700; }
@@ -462,22 +479,22 @@
 .cw-cal { width: 224px; padding: 9px 10px; }
 .cw-cal-head { display: flex; align-items: center; gap: 8px; height: 16px; }
 .cw-cal-head button {
-  background: none; border: none; padding: 0; font-size: 11px; color: var(--c-text-2);
+  background: none; border: none; padding: 0; font-size: 12px; color: var(--c-text-2);
 }
 .cw-cal-head button:hover { color: var(--c-accent); }
-.cw-cal-head .m { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; }
+.cw-cal-head .m { flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; }
 .cw-cal-dow, .cw-cal-week { display: grid; grid-template-columns: repeat(7, 1fr); }
 .cw-cal-dow { margin-top: 16px; height: 18px; }
 .cw-cal-dow span {
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--c-text-2);
+  font-size: 12px; color: var(--c-text-2);
 }
 .cw-cal-dow span:first-child, .cw-cal-day.sun { color: var(--c-bad); }
 .cw-cal-grid { margin-top: 7px; }
 .cw-cal-week { height: 22px; margin-bottom: 1px; }
 .cw-cal-day {
   display: flex; align-items: center; justify-content: center;
-  background: none; border: none; padding: 0; font-size: 11px;
+  background: none; border: none; padding: 0; font-size: 12px;
   border-radius: var(--c-r);
 }
 .cw-cal-day:hover { background: var(--c-head); }
@@ -487,7 +504,7 @@
 .cw-cal-foot { display: flex; align-items: center; gap: 8px; margin-top: 7px; height: 20px; }
 .cw-cal-foot .today {
   background: none; border: none; padding: 0;
-  font-size: 11px; color: var(--c-accent); text-decoration: underline;
+  font-size: 12px; color: var(--c-accent); text-decoration: underline;
 }
 .cw-cal-foot .apply {
   width: 48px; height: 20px; flex: none;
@@ -530,7 +547,7 @@
 /* ── 빈/로딩 상태 ────────────────────────────────────────── */
 .cw-blank {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; color: var(--c-text-3);
+  font-size: 12.5px; color: var(--c-text-3);
 }
 .cw-detail.empty {
   background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
