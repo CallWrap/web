@@ -353,7 +353,7 @@
 .cw-evbtn[disabled] { opacity: 0.45; cursor: not-allowed; }
 
 /* ── 후속 처리 (h 150) ───────────────────────────────────── */
-.cw-followup { flex: 0 1 150px; min-height: 76px; }
+.cw-followup { flex: 0 1 118px; min-height: 76px; }
 .cw-flist { flex: 1; overflow-y: auto; min-height: 0; }
 .cw-frow {
   height: 34px; display: flex; align-items: center;
