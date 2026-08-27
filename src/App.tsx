@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { QueuePage } from './pages/QueuePage';
-import { ReviewPage } from './pages/ReviewPage';
-import { FollowupPage } from './pages/FollowupPage';
-import { CompletedPage } from './pages/CompletedPage';
+import { CounselorPage } from './pages/CounselorPage';
 import { AdminPage } from './pages/AdminPage';
 import { LoginPage } from './pages/LoginPage';
 import { ToastHost } from './store/toastStore';
@@ -147,28 +144,30 @@ function AuthedApp() {
     return <Navigate to="/queue" replace />;
   }
 
+  // 상담사는 통합 검토 화면 하나로 끝난다 — 대기열·검토·후속·완료가 한 화면에 합쳐졌고,
+  // 그 화면이 자체 상단바를 들고 전체 화면을 쓰므로 앱 껍데기(사이드바·상단바)를 씌우지 않는다.
+  if (!isAdmin) {
+    return (
+      <>
+        <Routes>
+          <Route path="/queue" element={<CounselorPage />} />
+          <Route path="/review/:callId" element={<CounselorPage />} />
+          <Route path="*" element={<CounselorPage />} />
+        </Routes>
+        <ToastHost />
+      </>
+    );
+  }
+
   return (
     <div className="app">
       {!isReview && <Sidebar isAdmin={isAdmin} />}
       <div className="main">
         {!isReview && <Topbar />}
         <Routes>
-          {isAdmin ? (
-            <>
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/:tab" element={<AdminPage />} />
-              <Route path="*" element={<Navigate to="/admin" replace />} />
-            </>
-          ) : (
-            <>
-              <Route path="/" element={<QueuePage />} />
-              <Route path="/queue" element={<QueuePage />} />
-              <Route path="/review/:callId" element={<ReviewPage />} />
-              <Route path="/followups" element={<FollowupPage />} />
-              <Route path="/completed" element={<CompletedPage />} />
-              <Route path="*" element={<Navigate to="/queue" replace />} />
-            </>
-          )}
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/:tab" element={<AdminPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </div>
       <ToastHost />

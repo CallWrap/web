@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { apiFetch, setAccessToken } from '../api/http';
+import { ApiError, apiFetch, setAccessToken } from '../api/http';
 import type { BackendCounselorMe, BackendLoginResponse, BackendTokenRefreshResponse } from '../api/backendTypes';
 
 interface AuthState {
@@ -50,7 +50,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       const me = await fetchMe();
       set({ status: 'authenticated', counselor: me, error: null });
     } catch (err) {
-      const message = err instanceof Error ? err.message : '로그인에 실패했습니다.';
+      // 서버 원문(에러 코드·경로 등)을 그대로 화면에 뿌리지 않는다 — 로그인 실패는
+      // 원인이 무엇이든 사용자에겐 "아이디/비밀번호가 틀렸다" 하나로만 보여야 한다.
+      // 서버에 아예 못 닿은 경우만 예외로 네트워크 안내를 그대로 살린다.
+      const message =
+        err instanceof ApiError && err.code === 'NETWORK_ERROR'
+          ? err.message
+          : '아이디 또는 비밀번호가 틀립니다.';
       set({ status: 'unauthenticated', error: message });
       throw err;
     }

@@ -1,0 +1,500 @@
+/* ─────────────────────────────────────────────────────────────
+   상담사 통합 검토 화면 — Figma "14 상담사 통합 검토 화면 / 15 오버레이 동작".
+   공공기관 업무 시스템 문법: 단일 액센트(남색), 모서리 반경 3, 표 기반 레이아웃.
+
+   전부 `.cw` 아래로 스코프한다 — 전역 :root 토큰을 갈아치우면 지시받지 않은
+   관리자/로그인 화면까지 같이 바뀐다.
+   ───────────────────────────────────────────────────────────── */
+.cw {
+  --c-bg:        #eef1f5;
+  --c-panel:     #ffffff;
+  --c-bd:        #d6dbe4;
+  --c-line:      #e3e7ee;
+  --c-head:      #f2f4f8;
+  --c-text:      #1b2333;
+  --c-text-2:    #4a5468;
+  --c-text-3:    #8a93a6;
+  --c-accent:    #1f4b99;
+  --c-accent-bg: #eaf0fa;
+  --c-selected:  #fdf6d9;
+  --c-logout:    #c0392b;
+
+  /* 상태·등급은 의미를 나르므로 단일 액센트 규칙의 예외 */
+  --c-wait:      #1f4b99;  --c-wait-bg:   #eaf0fa;
+  --c-prog:      #9a6b00;  --c-prog-bg:   #fff6de;
+  --c-done:      #0f766e;  --c-done-bg:   #e7f5f2;
+  --c-bad:       #c8102e;  --c-bad-bg:    #fdeaed;
+  --c-praise:    #0f766e;  --c-praise-bg: #e7f5f2;
+  --c-normal:    #5b6472;  --c-normal-bg: #f0f2f5;
+  --c-ev:        #6b4f00;  --c-ev-bg:     #fdf0c4;  --c-ev-bd: #d9a92b;
+
+  --c-r: 3px;
+  --c-shadow: 0 6px 18px -2px rgba(18, 26, 41, 0.26);
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.cw :where(button) { font: inherit; color: inherit; cursor: pointer; }
+.cw :where(input) { font: inherit; color: inherit; }
+
+/* 패널 제목 왼쪽 3x12 남색 세로 막대 */
+.cw-tick {
+  width: 3px; height: 12px; background: var(--c-accent);
+  flex: none; border-radius: 1px;
+}
+
+.cw-panel {
+  background: var(--c-panel);
+  border: 1px solid var(--c-bd);
+  border-radius: var(--c-r);
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+/* overflow:hidden을 쓰지 않는다 — 달력·상태 필터·분류 드롭다운·근거 발화 팝업이
+   전부 패널 안에서 열려서, 잘라내면 오버레이가 통째로 안 보인다.
+   대신 내용 스크롤은 각 본문(.cw-tbody/.cw-utts/.cw-flist)이 따로 맡는다. */
+
+.cw-phead {
+  height: 30px; flex: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 10px;
+  background: var(--c-head);
+  border-bottom: 1px solid var(--c-bd);
+  border-radius: 2px 2px 0 0;
+}
+.cw-phead h2 { margin: 0; font-size: 12.5px; font-weight: 700; }
+.cw-phead .cw-sub { font-size: 11px; color: var(--c-text-3); font-weight: 400; }
+/* 제목과 오른쪽 컨트롤 사이를 밀어주는 스페이서. Figma엔 여기 얇은 실선이 있었지만
+   실제로 보니 뜬금없는 선으로 읽혀서 뺐다 — 밀어주는 역할만 남긴다. */
+.cw-rule { flex: 1; min-width: 12px; }
+
+/* ── 상단바 (h 44) ───────────────────────────────────────── */
+.cw-top {
+  height: 44px; flex: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 14px;
+  background: var(--c-panel);
+  border-bottom: 1px solid var(--c-bd);
+}
+.cw-top h1 { margin: 0; font-size: 12.5px; font-weight: 700; }
+.cw-top .cw-date { font-size: 11px; color: var(--c-text-2); }
+.cw-vline { width: 1px; height: 14px; background: var(--c-bd); flex: none; }
+
+/* 카운터는 상자에 넣지 않는다 — 숫자만 15px Bold */
+.cw-count {
+  display: flex; align-items: baseline; gap: 5px;
+  background: none; border: none; padding: 0;
+  font-size: 11px; color: var(--c-text-2);
+}
+.cw-count b { font-size: 15px; font-weight: 700; color: var(--c-text); }
+.cw-count.on, .cw-count.on b { color: var(--c-accent); font-weight: 700; }
+
+.cw-who { margin-left: auto; display: flex; align-items: baseline; gap: 5px; font-size: 11px; }
+.cw-who b { font-weight: 700; }
+.cw-who span { color: var(--c-text-2); }
+.cw-logout {
+  width: 76px; height: 24px; flex: none;
+  background: var(--c-logout); color: #fff;
+  border: none; border-radius: var(--c-r);
+  font-size: 11px; font-weight: 700;
+}
+
+/* ── 본문 (padding 12, 좌우 간격 10) ─────────────────────── */
+.cw-body { flex: 1; display: flex; gap: 10px; padding: 12px; min-height: 0; }
+.cw-list { width: 560px; flex: none; }
+.cw-detail { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── 공통 컨트롤 ─────────────────────────────────────────── */
+.cw-btn {
+  height: 22px; padding: 0 10px;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); font-size: 11px; color: var(--c-text-2);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.cw-btn:hover { background: var(--c-head); }
+.cw-btn.primary { background: var(--c-accent); border-color: var(--c-accent); color: #fff; font-weight: 700; }
+.cw-btn.primary:hover { background: #1a4085; }
+.cw-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.cw-input {
+  height: 22px; padding: 0 8px;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); font-size: 11px;
+}
+.cw-input::placeholder { color: var(--c-text-3); }
+.cw-input:focus { outline: none; border-color: var(--c-accent); }
+
+/* 드롭다운 화살표 — 벡터 삼각형 10 x 6.2 (폰트 글리프 아님) */
+.cw-caret { width: 10px; height: 6.2px; flex: none; }
+.cw-caret path { fill: var(--c-text); }
+
+/* ── 좌측 목록 ───────────────────────────────────────────── */
+.cw-range { display: flex; align-items: center; gap: 8px; }
+.cw-datebtn {
+  width: 104px; height: 22px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); font-size: 11px;
+}
+.cw-datebtn:hover, .cw-datebtn.on { border-color: var(--c-accent); }
+.cw-datebtn svg { flex: none; color: var(--c-text-2); }
+.cw-tilde { color: var(--c-text-3); }
+
+.cw-filter {
+  width: 84px; height: 22px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  white-space: nowrap;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); font-size: 11px;
+}
+.cw-filter:hover, .cw-filter.on { border-color: var(--c-accent); }
+
+/* 표 */
+.cw-thead, .cw-row {
+  display: grid;
+  grid-template-columns: 84px 62px minmax(0, 180px) 118px 1fr 58px;
+  gap: 8px;
+  align-items: center;
+  padding: 0 10px;
+}
+.cw-thead {
+  height: 28px; flex: none;
+  background: var(--c-head);
+  border-bottom: 1px solid var(--c-bd);
+  font-size: 11px; font-weight: 700; color: var(--c-text-2);
+}
+.cw-thead > *, .cw-row > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cw-thead > :nth-child(1), .cw-row > :nth-child(1),
+.cw-thead > :nth-child(2), .cw-row > :nth-child(2),
+.cw-thead > :nth-child(4), .cw-row > :nth-child(4) { text-align: center; }
+/* 상태는 항상 맨 오른쪽 칸(6번)에 — 남는 폭은 전화번호와 상태 사이에 둔다 */
+.cw-thead > :nth-child(5), .cw-row > :nth-child(5) { grid-column: 6; text-align: center; }
+
+.cw-tbody { flex: 1; overflow-y: auto; min-height: 0; }
+.cw-row {
+  width: 100%; height: 30px;
+  background: none; border: none; border-bottom: 1px solid var(--c-line);
+  font-size: 11.5px; text-align: left;
+}
+.cw-row:hover { background: var(--c-head); }
+.cw-row.sel { background: var(--c-selected); }
+.cw-row.sel > :nth-child(1) { font-weight: 700; }
+.cw-row .cw-muted { color: var(--c-text-3); }
+
+.cw-tfoot {
+  height: 26px; flex: none;
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  border-top: 1px solid var(--c-bd);
+  font-size: 10.5px; color: var(--c-text-3);
+}
+
+/* 상태 배지 */
+.cw-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 19px; padding: 0 8px; border-radius: var(--c-r);
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+}
+.cw-badge.wait   { color: var(--c-wait);   background: var(--c-wait-bg); }
+.cw-badge.prog   { color: var(--c-prog);   background: var(--c-prog-bg); }
+.cw-badge.done   { color: var(--c-done);   background: var(--c-done-bg); }
+.cw-badge.bad    { color: var(--c-bad);    background: var(--c-bad-bg); }
+.cw-badge.praise { color: var(--c-praise); background: var(--c-praise-bg); }
+.cw-badge.normal { color: var(--c-normal); background: var(--c-normal-bg); }
+
+/* ── 민원인 정보 (h 62) ──────────────────────────────────── */
+.cw-person { height: 62px; flex: none; }
+.cw-prow { flex: 1; display: flex; }
+.cw-plabel {
+  width: 66px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--c-head); border-right: 1px solid var(--c-line);
+  font-size: 12px; color: var(--c-text-2);
+}
+.cw-pvalue {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 6px; border-right: 1px solid var(--c-line);
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cw-pvalue:last-child { border-right: none; }
+.cw-pvalue.name { width: 96px; flex: none; }
+.cw-pvalue.tel  { width: 124px; flex: none; }
+.cw-pvalue.org  { width: 106px; flex: none; }
+.cw-pvalue.hist { flex: 1; gap: 8px; }
+.cw-pvalue .cw-empty { color: var(--c-text-3); }
+.cw-hist-total { font-size: 11px; color: var(--c-text-2); }
+
+/* ── 전사문 (h 268, 세로로 늘어남) ───────────────────────── */
+.cw-transcript { flex: 1 1 0; min-height: 110px; }
+
+/* 재생 버튼 — 껍데기는 두 상태가 완전히 동일, 안의 도형만 바뀐다 */
+.cw-play {
+  width: 22px; height: 20px; flex: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
+}
+.cw-play:hover { border-color: var(--c-accent); }
+.cw-play svg { fill: var(--c-accent); }
+.cw-play[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* 막대 폭 184 고정 — 재생이 진행돼도 버튼은 움직이지 않는다 */
+.cw-seek {
+  width: 184px; height: 5px; flex: none; position: relative;
+  background: var(--c-line); border-radius: 3px; padding: 0; border: none;
+}
+.cw-seek i { display: block; height: 100%; background: var(--c-accent); border-radius: 3px; }
+.cw-seek b {
+  position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  background: var(--c-panel); border: 2px solid var(--c-accent); border-radius: 50%;
+}
+.cw-seek[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+.cw-hits { font-size: 10.5px; color: var(--c-text-2); white-space: nowrap; }
+.cw-step {
+  width: 18px; height: 22px; padding: 0; flex: none;
+  background: none; border: 1px solid var(--c-bd); border-radius: var(--c-r);
+  font-size: 9px; color: var(--c-text-2);
+}
+.cw-step:hover { border-color: var(--c-accent); }
+
+.cw-utts { flex: 1; overflow-y: auto; min-height: 0; }
+.cw-utt {
+  display: flex; gap: 10px; padding: 6px 10px;
+  border-bottom: 1px solid var(--c-line);
+  transition: background 0.25s;
+}
+.cw-utt-who { width: 66px; flex: none; }
+.cw-utt-who .r { font-size: 11px; font-weight: 700; }
+.cw-utt.client .cw-utt-who .r { color: var(--c-bad); }
+.cw-utt.agent  .cw-utt-who .r { color: var(--c-accent); }
+.cw-utt-who .t { font-size: 10.5px; color: var(--c-text-3); }
+.cw-utt-text { flex: 1; min-width: 0; font-size: 11.5px; word-break: break-word; }
+/* 검색 일치 — 근거 발화 음영과는 별개. 근거 발화는 전사문에 색칠하지 않는다 */
+.cw-utt.hit { background: #fffbe8; }
+/* scrollToUtterance의 일시적 강조 (1.5초) */
+.cw-utt.flash { background: var(--c-ev-bg); }
+
+/* ── 요약 · 분류 (h 268) ─────────────────────────────────── */
+.cw-mid { flex: 1 1 0; min-height: 130px; display: flex; gap: 10px; }
+.cw-summary { flex: 1; min-width: 0; min-height: 0; }
+.cw-classify { width: 368px; flex: none; min-height: 0; }
+
+.cw-srow { display: flex; border-bottom: 1px solid var(--c-line); }
+.cw-srow:last-child { border-bottom: none; }
+.cw-srow.title { height: 34px; flex: none; }
+.cw-srow.grow { flex: 1; min-height: 0; }
+.cw-slabel {
+  width: 74px; flex: none;
+  display: flex; justify-content: center; padding-top: 8px;
+  background: var(--c-head); border-right: 1px solid var(--c-line);
+  font-size: 12px; color: var(--c-text-2);
+}
+.cw-srow.title .cw-slabel { align-items: center; padding-top: 0; }
+.cw-sval { flex: 1; min-width: 0; display: flex; }
+.cw-sval input, .cw-sval textarea {
+  flex: 1; min-width: 0;
+  padding: 8px 10px; border: none; background: none;
+  font: inherit; font-size: 11.5px; color: var(--c-text); resize: none;
+}
+.cw-srow.title .cw-sval input { padding: 0 10px; }
+.cw-sval textarea { overflow-y: auto; line-height: 1.55; }
+.cw-sval input:focus, .cw-sval textarea:focus { outline: none; background: var(--c-accent-bg); }
+
+/* 분류 5행 — 라벨칸(84) + 드롭다운 + 근거 발화 버튼(66 x 22) */
+.cw-crows { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.cw-crow { flex: 1; min-height: 30px; display: flex; border-bottom: 1px solid var(--c-line); }
+.cw-crow:last-child { border-bottom: none; }
+.cw-clabel {
+  width: 84px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--c-head); border-right: 1px solid var(--c-line);
+  font-size: 12px; color: var(--c-text-2);
+}
+.cw-cval { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 8px; }
+
+.cw-select {
+  flex: 1; min-width: 0; height: 22px; padding: 0 8px;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
+  font-size: 11px;
+}
+.cw-select:hover, .cw-select.on { border-color: var(--c-accent); }
+/* 드롭다운 값은 가운데 정렬, 화살표는 오른쪽 끝 */
+.cw-select span {
+  flex: 1; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cw-select .cw-empty { color: var(--c-text-3); }
+.cw-evbtn {
+  width: 66px; height: 22px; flex: none; padding: 0;
+  background: var(--c-accent); color: #fff; border: 1px solid var(--c-accent);
+  border-radius: var(--c-r); font-size: 11px; font-weight: 700;
+}
+.cw-evbtn:hover { background: #1a4085; }
+.cw-evbtn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* ── 후속 처리 (h 150) ───────────────────────────────────── */
+.cw-followup { flex: 0 1 150px; min-height: 76px; }
+.cw-flist { flex: 1; overflow-y: auto; min-height: 0; }
+.cw-frow {
+  height: 34px; display: flex; align-items: center;
+  border-bottom: 1px solid var(--c-line);
+}
+.cw-fdate {
+  width: 86px; flex: none; text-align: center;
+  font-size: 11px; color: var(--c-text-2);
+}
+.cw-frow.new .cw-fdate { color: var(--c-accent); font-weight: 700; }
+.cw-fbody { flex: 1; min-width: 0; padding: 0 10px; }
+/* 세 줄의 글자 시작점이 정확히 같아야 한다 —
+   입력칸은 테두리 1 + 안쪽 여백 9, 지난 건은 왼쪽 여백 10 */
+.cw-fbody input {
+  width: 100%; height: 24px; padding: 0 9px;
+  border: 1px solid var(--c-bd); border-radius: var(--c-r);
+  background: var(--c-panel); font-size: 11.5px;
+}
+.cw-fbody input:focus { outline: none; border-color: var(--c-accent); }
+.cw-fbody .cw-ftext { padding: 0 10px; font-size: 11.5px; color: var(--c-text-2); }
+.cw-fwho {
+  width: 58px; flex: none; text-align: center;
+  font-size: 11px; color: var(--c-text-3);
+}
+.cw-fempty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--c-text-3);
+}
+
+/* ── 액션바 (h 44) ───────────────────────────────────────── */
+.cw-actions {
+  height: 44px; flex: none;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
+}
+.cw-actions > .cw-lab { font-size: 11px; color: var(--c-text-2); font-weight: 700; }
+
+.cw-seg {
+  display: flex; height: 26px; flex: none;
+  border: 1px solid var(--c-bd); border-radius: var(--c-r); overflow: hidden;
+}
+.cw-seg button {
+  width: 84px; border: none; background: var(--c-panel);
+  font-size: 11px; color: var(--c-text-2);
+}
+.cw-seg button + button { border-left: 1px solid var(--c-bd); }
+.cw-seg button:hover { background: var(--c-head); }
+.cw-seg button.on { background: var(--c-accent); color: #fff; font-weight: 700; }
+
+/* 취소 / 저장 둘 다 84 x 26 */
+.cw-abtn {
+  width: 84px; height: 26px; flex: none;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); font-size: 11px; color: var(--c-text-2);
+}
+.cw-abtn:hover { background: var(--c-head); }
+.cw-abtn.primary { background: var(--c-accent); border-color: var(--c-accent); color: #fff; font-weight: 700; }
+.cw-abtn.primary:hover { background: #1a4085; }
+.cw-abtn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 오버레이 4종 — 다른 요소 위에 겹쳐 뜬다, 화면을 밀어내지 않는다 ── */
+.cw-anchor { position: relative; }
+.cw-pop {
+  position: absolute; top: calc(100% + 7px); left: 0; z-index: 50;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); box-shadow: var(--c-shadow);
+}
+.cw-pop.right { left: auto; right: 0; }
+.cw-scrim { position: fixed; inset: 0; z-index: 40; background: none; border: none; cursor: default; }
+
+/* 목록형 오버레이 (상태 필터 / 분류 드롭다운) */
+.cw-menu { padding: 4px 0; max-height: 260px; overflow-y: auto; }
+.cw-menu button {
+  width: 100%; height: 26px; padding: 0 10px;
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: none; text-align: left; font-size: 11px;
+}
+.cw-menu button:hover { background: var(--c-head); }
+.cw-menu button.on { background: var(--c-selected); font-weight: 700; }
+.cw-menu .ck { width: 8px; flex: none; color: var(--c-accent); }
+.cw-filter-pop { width: 104px; }
+.cw-select-pop { min-width: 100%; }
+
+/* 달력 (w 224) */
+.cw-cal { width: 224px; padding: 9px 10px; }
+.cw-cal-head { display: flex; align-items: center; gap: 8px; height: 16px; }
+.cw-cal-head button {
+  background: none; border: none; padding: 0; font-size: 11px; color: var(--c-text-2);
+}
+.cw-cal-head button:hover { color: var(--c-accent); }
+.cw-cal-head .m { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; }
+.cw-cal-dow, .cw-cal-week { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cw-cal-dow { margin-top: 16px; height: 18px; }
+.cw-cal-dow span {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--c-text-2);
+}
+.cw-cal-dow span:first-child, .cw-cal-day.sun { color: var(--c-bad); }
+.cw-cal-grid { margin-top: 7px; }
+.cw-cal-week { height: 22px; margin-bottom: 1px; }
+.cw-cal-day {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; font-size: 11px;
+  border-radius: var(--c-r);
+}
+.cw-cal-day:hover { background: var(--c-head); }
+.cw-cal-day.blank { visibility: hidden; }
+.cw-cal-day.in { background: var(--c-accent-bg); border-radius: 0; }
+.cw-cal-day.edge { background: var(--c-accent); color: #fff; font-weight: 700; border-radius: var(--c-r); }
+.cw-cal-foot { display: flex; align-items: center; gap: 8px; margin-top: 7px; height: 20px; }
+.cw-cal-foot .today {
+  background: none; border: none; padding: 0;
+  font-size: 11px; color: var(--c-accent); text-decoration: underline;
+}
+.cw-cal-foot .apply {
+  width: 48px; height: 20px; flex: none;
+  background: var(--c-accent); color: #fff; border: none;
+  border-radius: var(--c-r); font-size: 11px; font-weight: 700;
+}
+
+/* 드래그로 옮기는 팝업 — 근거 발화용 */
+.cw-dragpop {
+  position: fixed; z-index: 60;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); box-shadow: var(--c-shadow);
+}
+.cw-dragpop .cw-phead { cursor: move; user-select: none; }
+
+/* 근거 발화 팝업 (w 440) — 스크롤 없이 전부 보인다 */
+.cw-ev-pop { width: 440px; }
+.cw-ev-pop .cw-phead .x {
+  background: none; border: none; padding: 0;
+  font-size: 11px; color: var(--c-text-3);
+}
+.cw-ev-pop .cw-phead .x:hover { color: var(--c-text); }
+.cw-ev-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.cw-ev-utt {
+  display: flex; gap: 10px; padding: 8px 10px; width: 100%;
+  background: var(--c-ev-bg); border: 1px solid var(--c-ev-bd);
+  border-radius: var(--c-r); text-align: left;
+}
+.cw-ev-utt:hover { background: #fbe7a8; }
+.cw-ev-utt .cw-utt-who .t { color: var(--c-ev); }
+.cw-ev-none { padding: 14px; text-align: center; font-size: 11px; color: var(--c-text-3); }
+
+/* ── 빈/로딩 상태 ────────────────────────────────────────── */
+.cw-blank {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; color: var(--c-text-3);
+}
+.cw-detail.empty {
+  background: var(--c-panel); border: 1px solid var(--c-bd); border-radius: var(--c-r);
+  align-items: center; justify-content: center;
+}
