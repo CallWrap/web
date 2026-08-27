@@ -443,7 +443,9 @@ export function CounselorPage() {
 
             <span className="cw-anchor">
               <button className={`cw-filter ${filterPop ? 'on' : ''}`} onClick={() => setFilterPop((v) => !v)}>
-                {statusFilter}
+                {/* 글자칸 폭을 가장 긴 항목("검토 대기")에 고정 — 어떤 값을 골라도
+                    글자 시작점과 삼각형 위치가 그대로다 */}
+                <span>{statusFilter}</span>
                 <Caret />
               </button>
               {filterPop && (
