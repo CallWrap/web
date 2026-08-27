@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Call, CallFields, CallStatus, FieldKey, SummaryValue, Utterance } from '../api/types';
+import { ApiError } from '../api/http';
 import { useCallStore } from '../store/callStore';
 import { useAuthStore } from '../store/authStore';
 import { useToastStore } from '../store/toastStore';
@@ -323,8 +324,14 @@ export function CounselorPage() {
       setDetail(saved);
       setMemos((prev) => prev.map((m) => ({ ...m, fresh: false })));
       pushToast(`${callSeq(detail)} 저장됨 · ${progress}`);
-    } catch {
-      pushToast('저장에 실패했습니다 · 다시 시도해 주세요');
+    } catch (err) {
+      // 재확정 차단(409)은 "다시 시도"로 풀리지 않는다 — 백엔드가 콜당 1회만 확정을
+      // 허용하기 때문(ReviewConfirmService). 원인을 그대로 알려준다.
+      pushToast(
+        err instanceof ApiError && err.code === 'REVIEW_ALREADY_CONFIRMED'
+          ? '이미 확정된 상담입니다 · 진행 상황을 다시 바꾸려면 백엔드 재확정 지원이 필요합니다'
+          : '저장에 실패했습니다 · 다시 시도해 주세요',
+      );
     }
     setSaving(false);
   }
