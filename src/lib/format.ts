@@ -1,4 +1,7 @@
-import type { CallGrade, CallStatus, SummaryValue, Tier } from '../api/types';
+import type { Call, CallGrade, CallStatus, SummaryValue, Tier } from '../api/types';
+
+/** 백엔드가 아직 안 주는 값. 지어내지 않고 비어 있다는 사실을 그대로 보여준다. */
+export const NO_DATA = '정보 없음';
 
 /**
  * 값이 아직 없을 때 보여줄 문구. 절대 '—'나 '(없음)'류의 무의미한 자리표시를 쓰지 않는다 —
@@ -76,3 +79,19 @@ export const fieldLabel: Record<string, string> = {
   followup: '후속 처리',
   faq: 'FAQ 반영 필요',
 };
+
+/**
+ * 화면에 찍는 상담번호 (Figma 표기 `2026-0273`) — 접수 순번에 연도를 붙인다.
+ * 상담사 화면 목록·관리자 상담대장·민원인 상담 이력이 모두 이 표기를 쓴다.
+ */
+export function fmtCallSeq(call: Pick<Call, 'callNo' | 'startedAt' | 'confirmedAt'>): string {
+  if (call.callNo == null) return NO_DATA;
+  const year = (call.startedAt ?? call.confirmedAt ?? '').slice(0, 4) || `${new Date().getFullYear()}`;
+  return `${year}-${`${call.callNo}`.padStart(4, '0')}`;
+}
+
+/** `08-27 14:22` 형식. 후속 처리 이력·상담 이력에서 쓴다. */
+export function fmtStamp(d: Date): string {
+  const p = (n: number) => `${n}`.padStart(2, '0');
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}

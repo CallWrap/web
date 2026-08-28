@@ -1,0 +1,202 @@
+/* ─────────────────────────────────────────────────────────────
+   관리자 화면 — Figma 17~24.
+   토큰·패널·표·배지·드롭다운은 상담사 화면(styles.counselor.css, `.cw`)을
+   그대로 쓴다. 이 파일은 관리자에만 있는 것(탭 줄·차트·모달)만 담는다.
+   루트가 `.cw .aw`라 `.cw`의 토큰이 전부 살아 있다.
+   ───────────────────────────────────────────────────────────── */
+
+/* ── 탭 줄 (h 34) — 학사행정 시스템 탭 문법 ─────────────────── */
+.aw-tabs {
+  height: 34px; flex: none;
+  display: flex; align-items: flex-end; gap: 4px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--c-bd);
+}
+.aw-tab {
+  height: 26px; padding: 0 14px; position: relative; top: 1px;
+  display: flex; align-items: center;
+  background: #e7eaf0;
+  border: 1px solid var(--c-bd); border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  font-size: 12px; color: var(--c-text-2);
+}
+.aw-tab:hover { background: #dfe4ec; }
+/* 선택된 탭만 높이 30 + 위쪽 2px 남색, 아래는 흰색으로 덮어 본문과 이어 보이게 한다 */
+.aw-tab.on {
+  height: 30px;
+  background: var(--c-panel);
+  border-top: 2px solid var(--c-accent);
+  border-bottom: 1px solid var(--c-panel);
+  font-weight: 700; color: var(--c-text);
+}
+
+/* ── 본문 ────────────────────────────────────────────────── */
+.aw-body { flex: 1; display: flex; gap: 10px; padding: 12px; min-height: 0; }
+.aw-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+.aw-col.grow { flex: 1; }
+.aw-side { width: 352px; flex: none; }
+
+/* 목록/상세 구조 — 좌 560 + 우 남는 폭 (상담대장 제외 세 탭) */
+.aw-list { width: 560px; flex: none; }
+.aw-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── 공통 표 ─────────────────────────────────────────────── */
+/* 헤더와 행이 같은 grid-template-columns를 공유한다 — 컬럼명과 값이 절대 어긋나지 않게 */
+.aw-thead, .aw-row {
+  display: grid; gap: 8px; align-items: center; padding: 0 10px;
+}
+.aw-thead {
+  height: 28px; flex: none;
+  background: var(--c-head); border-bottom: 1px solid var(--c-bd);
+  font-size: 12px; font-weight: 700; color: var(--c-text-2);
+}
+.aw-thead > *, .aw-row > * {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+}
+.aw-thead > .l, .aw-row > .l { text-align: left; }
+.aw-tbody { flex: 1; overflow-y: auto; min-height: 0; }
+.aw-row {
+  width: 100%; height: 30px;
+  background: none; border: none; border-bottom: 1px solid var(--c-line);
+  font-size: 12.5px;
+}
+.aw-row:hover { background: var(--c-head); }
+.aw-row.sel { background: var(--c-selected); }
+.aw-row.sel > :first-child { font-weight: 700; }
+.aw-row .cw-muted { color: var(--c-text-3); }
+.aw-tfoot {
+  height: 26px; flex: none;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 10px;
+  border-top: 1px solid var(--c-bd);
+  font-size: 11.5px; color: var(--c-text-3);
+}
+/* 상담번호는 링크처럼 보이게 (누르면 상세가 열린다) */
+.aw-no { color: var(--c-accent); font-weight: 700; }
+
+/* ── 필터 세트 — 같은 세트 안 6, 세트 사이 20 ──────────────── */
+.aw-filters { display: flex; align-items: center; gap: 20px; }
+.aw-fset { display: flex; align-items: center; gap: 6px; }
+.aw-fset > label { font-size: 12px; color: var(--c-text-2); white-space: nowrap; }
+
+/* ── 차트 공통 ───────────────────────────────────────────── */
+.aw-chart { flex: 1; min-height: 0; padding: 12px 14px; display: flex; flex-direction: column; }
+.aw-legend { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--c-text-2); }
+.aw-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+/* 세로 막대 (시간대별 / 상담사별) */
+.aw-bars { flex: 1; display: flex; align-items: flex-end; gap: 6px; min-height: 0; }
+.aw-bar { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+.aw-bar .v { font-size: 11.5px; color: var(--c-text-2); margin-bottom: 3px; }
+/* 누적 막대 — 아래부터 일반 → 칭찬 → 악성 */
+.aw-stack { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 2px; overflow: hidden; }
+.aw-stack i { display: block; width: 100%; }
+.aw-xlabels { flex: none; display: flex; gap: 6px; margin-top: 6px; }
+.aw-xlabels span {
+  flex: 1; text-align: center; font-size: 11.5px; color: var(--c-text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 도넛 + 범례 */
+.aw-donut { display: flex; align-items: center; gap: 14px; padding: 10px 12px; flex: 1; min-height: 0; }
+.aw-donut svg { flex: none; }
+.aw-donut-total { text-align: center; }
+.aw-donut-total .n { font-size: 20px; font-weight: 700; fill: var(--c-text); }
+.aw-donut-total .u { font-size: 10px; fill: var(--c-text-3); }
+.aw-dlegend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.aw-dlegend .r { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--c-text-2); }
+.aw-dlegend .r.top { font-weight: 700; color: var(--c-text); }
+.aw-dlegend i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.aw-dlegend .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aw-dlegend .ct { width: 28px; text-align: right; }
+.aw-dlegend .pc { width: 34px; text-align: right; color: var(--c-text-3); }
+.aw-dlegend .r.top .pc { color: var(--c-text-2); }
+
+/* 가로 막대 (등급별 처리 / 등급별 이력) */
+.aw-hbars { flex: 1; display: flex; flex-direction: column; justify-content: space-around; padding: 8px 14px; }
+.aw-hbar { display: flex; align-items: center; gap: 12px; }
+.aw-hbar .lb { width: 52px; flex: none; font-size: 14px; color: var(--c-text-2); }
+.aw-hbar .tr { flex: 1; height: 18px; background: var(--c-line); border-radius: 2px; overflow: hidden; }
+.aw-hbar .tr i { display: block; height: 100%; border-radius: 2px; }
+.aw-hbar .ct { width: 44px; flex: none; text-align: right; font-size: 15px; font-weight: 700; }
+
+/* 상태 줄 (현재 상태 / 응대 참고) */
+.aw-stateline {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  height: 34px; padding: 0 14px;
+  background: var(--c-head); border-top: 1px solid var(--c-line);
+  font-size: 12px; color: var(--c-text-2);
+}
+.aw-stateline .lb { color: var(--c-text-2); }
+
+/* 알림 */
+.aw-alerts { flex: 1; overflow-y: auto; min-height: 0; }
+.aw-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 22px 9px 12px;  /* 오른쪽 22 — 스크롤 표시와 글씨가 안 겹치게 */
+  border-bottom: 1px solid var(--c-line);
+}
+.aw-alert .tg {
+  width: 44px; flex: none; height: 19px; border-radius: var(--c-r);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.aw-alert .tg.counselor { color: var(--c-bad); background: var(--c-bad-bg); }
+.aw-alert .tg.faq { color: var(--c-prog); background: var(--c-prog-bg); }
+.aw-alert .tg.customer { color: var(--c-accent); background: var(--c-accent-bg); }
+.aw-alert .tx { flex: 1; min-width: 0; font-size: 12px; line-height: 1.45; }
+.aw-alert .tm { flex: none; font-size: 11.5px; color: var(--c-text-3); }
+/* 헤더 오른쪽 개수 — 배경 없이 빨간 숫자만 */
+.aw-count-red { font-size: 13px; font-weight: 700; color: var(--c-bad); }
+
+/* ── 정보 줄 (상담사 정보 / 민원인 정보 / 초안 정보) ────────── */
+.aw-info { height: 62px; flex: none; }
+.aw-inforow { flex: 1; display: flex; }
+.aw-infolabel {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  background: var(--c-head); border-right: 1px solid var(--c-line);
+  font-size: 13px; color: var(--c-text-2);
+}
+.aw-infoval {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 8px; border-right: 1px solid var(--c-line);
+  font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.aw-infoval:last-child { border-right: none; }
+
+/* ── 상세 보기 모달 (프레임 24) ───────────────────────────── */
+.aw-scrim {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(16, 26, 41, 0.34);
+  border: none; padding: 0; cursor: default;
+}
+.aw-modal {
+  position: fixed; z-index: 81; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1120px; max-width: calc(100vw - 32px);
+  height: 806px; max-height: calc(100vh - 32px);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 0 12px 12px;
+  background: var(--c-panel); border: 1px solid var(--c-bd);
+  border-radius: var(--c-r); box-shadow: var(--c-shadow);
+}
+.aw-modal-head {
+  height: 44px; flex: none;
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 -12px; padding: 0 12px;
+  border-bottom: 1px solid var(--c-bd);
+}
+.aw-modal-head h2 { margin: 0; font-size: 13.5px; font-weight: 700; }
+.aw-modal-head .x { background: none; border: none; font-size: 13px; color: var(--c-text-3); }
+.aw-modal-head .x:hover { color: var(--c-text); }
+
+/* ── 상태 배지 3종 (상담사 상태 / 응대 참고) ───────────────── */
+.cw-badge.good { color: var(--c-done); background: var(--c-done-bg); }
+.cw-badge.warn { color: var(--c-prog); background: var(--c-prog-bg); }
+.cw-badge.rest { color: var(--c-bad); background: var(--c-bad-bg); }
+
+/* ── 빈 상태 ─────────────────────────────────────────────── */
+.aw-blank {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; text-align: center;
+  font-size: 12.5px; color: var(--c-text-3);
+}

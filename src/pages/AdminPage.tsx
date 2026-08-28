@@ -1,692 +1,84 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Call, FieldKey } from '../api/types';
 import type { BackendReviewStats } from '../api/backendTypes';
 import { getReviewStats } from '../api/api';
-import { GRADE_MAP } from '../api/adapt';
-import { FaqReviewPanel } from '../components/FaqReviewPanel';
-import { PendingMetric } from '../components/PendingMetric';
-import { MetricDrawer } from '../components/MetricDrawer';
 import { useCallStore } from '../store/callStore';
-import { EMPTY, fieldLabel, fmtCallNo, fmtDuration, fmtTime, gradeLabel, statusLabel, summaryText, tierLabel } from '../lib/format';
-import { downloadCsv } from '../lib/exportCsv';
-import { ADMIN_TABS, type AdminTab } from '../lib/adminTabs';
-import { QUALITY_CATEGORIES, QUALITY_SUBCATEGORIES } from '../mock/qualityScores';
-import { MEASUREMENT_LABEL, GRADE_MODEL_COMPARISON, GRADE_MODEL_NOTE, PIPELINE_METRICS } from '../data/measuredMetrics';
+import { ADMIN_TABS, isAdminTab, type AdminTab } from '../lib/adminTabs';
+import { AppTopbar, type TopbarCounters } from '../components/AppTopbar';
+import { OverviewTab } from '../components/admin/OverviewTab';
+import { LedgerTab } from '../components/admin/LedgerTab';
+import { CounselorsTab } from '../components/admin/CounselorsTab';
+import { CustomersTab } from '../components/admin/CustomersTab';
+import { FaqTab } from '../components/admin/FaqTab';
+import '../styles.counselor.css';
+import '../styles.admin.css';
 
-const LEDGER_FIELDS: FieldKey[] = ['type', 'category', 'grade', 'summary', 'followup'];
+/* ─────────────────────────────────────────────────────────────
+   관리자 화면 (Figma 17~24 · 관리자_화면_구현_지침.md).
+   상단바 44 + 탭 줄 34 + 본문. 상담사 화면과 같은 디자인 언어를 쓰므로
+   루트에 `.cw`를 함께 걸어 토큰·패널·표 스타일을 그대로 물려받는다.
+   ───────────────────────────────────────────────────────────── */
+
+const EMPTY_COUNTERS: TopbarCounters = { '검토 대기': 0, '진행 중': 0, 완료: 0 };
 
 export function AdminPage() {
-  const { calls, totalReviewSec } = useCallStore();
-  const fetchCall = useCallStore((state) => state.fetchCall);
+  const { tab } = useParams();
   const navigate = useNavigate();
-  const { tab: tabParam } = useParams<{ tab?: string }>();
-  const tab: AdminTab = ADMIN_TABS.some((t) => t.key === tabParam) ? (tabParam as AdminTab) : 'overview';
-  const [query, setQuery] = useState('');
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [ledgerDetails, setLedgerDetails] = useState<Record<string, Call>>({});
-  // 개요 탭 차트 전환 — 유형 분포/악성콜 밸런싱/시간대별 처리량을 동시에 늘어놓지 않고
-  // 한 번에 하나만 보여준다. 세 그래프가 한 화면에 다 있으면 뭘 봐야 할지 못 골랐다는
-  // 피드백이 있었다(2026-08-25) — 차트 개수 자체를 줄여서 해결한다.
-  const [chartView, setChartView] = useState<'type' | 'agent' | 'hourly'>('type');
+  const loadQueue = useCallStore((s) => s.loadQueue);
 
-  // 개요 탭 집계: DB에서 GROUP BY/AVG로 계산해서 온다 (/api/reviews/stats).
-  // getQueue()가 주는 calls는 최근 100건 캡이 걸려 있어서 그걸로 세면 100건이 넘는 순간부터
-  // 통계가 틀어진다 — stats가 로드되기 전까지만 기존 방식(calls 기준)으로 fallback한다.
   const [stats, setStats] = useState<BackendReviewStats | null>(null);
+
+  const active: AdminTab = isAdminTab(tab) ? tab : 'overview';
+
   useEffect(() => {
+    loadQueue();
+  }, [loadQueue]);
+
+  // 상단바 카운터와 개요 탭이 같은 집계를 쓰므로 한 번만 받아 나눠 쓴다.
+  // 관리자는 목록(useCallStore.calls)이 본인 배정 콜만 와서 비어 있으므로 집계 API가 유일한 출처다.
+  useEffect(() => {
+    let alive = true;
     getReviewStats()
-      .then(setStats)
-      .catch(() => {
-        // 집계 실패는 조용히 넘어간다 — 아래 fallback(calls 기준 계산)이 그대로 쓰인다.
-      });
+      .then((s) => {
+        if (alive) setStats(s);
+      })
+      // 집계 실패로 화면 전체를 막지 않는다 — 카운터가 0으로 보일 뿐이다.
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // 개요 카드의 드로어에서 바로 상담대장 행을 연 경우에도 상세 데이터를 선로딩한다.
-  useEffect(() => {
-    if (tab !== 'ledger' || !openId || ledgerDetails[openId]) return;
-    void fetchCall(openId).then((detail) => {
-      if (detail) {
-        setLedgerDetails((current) => ({ ...current, [openId]: detail }));
+  const counters: TopbarCounters = stats
+    ? {
+        // 검토 대기 = NEEDS_HUMAN_REVIEW + DONE (둘 다 상담사 확인을 기다리는 상태)
+        '검토 대기': (stats.statusCounts.NEEDS_HUMAN_REVIEW ?? 0) + (stats.statusCounts.DONE ?? 0),
+        '진행 중': stats.inProgressCount ?? 0,
+        완료: stats.completedCount ?? 0,
       }
-    });
-  }, [fetchCall, ledgerDetails, openId, tab]);
-
-  function gradeCountFrom(gradeCounts: Record<string, number>, webGrade: 'normal' | 'praise' | 'malicious') {
-    return Object.entries(gradeCounts).reduce(
-      (sum, [label, n]) => sum + (GRADE_MAP[label] === webGrade ? n : 0),
-      0,
-    );
-  }
-
-  const processed = calls.filter((c) => c.status === 'confirmed' || c.status === 'followup');
-  const processedWithTime = processed.filter((c) => c.reviewSec != null);
-  const avgReview = stats?.avgReviewSec != null
-    ? Math.round(stats.avgReviewSec)
-    : processedWithTime.length > 0
-      ? Math.round(totalReviewSec / processedWithTime.length)
-      : 0;
-  const maliciousCount = stats
-    ? gradeCountFrom(stats.gradeCounts, 'malicious')
-    : calls.filter((c) => c.grade === 'malicious').length;
-  const praiseCount = stats
-    ? gradeCountFrom(stats.gradeCounts, 'praise')
-    : calls.filter((c) => c.grade === 'praise').length;
-  const normalCount = stats
-    ? gradeCountFrom(stats.gradeCounts, 'normal')
-    : calls.filter((c) => c.grade === 'normal').length;
-  const totalCount = stats ? stats.totalCalls : calls.length;
-  const maliciousRate = Math.round((maliciousCount / Math.max(1, totalCount)) * 100);
-
-  // 상담유형 분포 — stats가 오면 전체 기준(DB 집계), 아니면 지금 로드된 큐 기준 fallback
-  const typeDist = stats
-    ? Object.entries(stats.typeCounts)
-        .map(([type, n]) => ({ type, n }))
-        .sort((a, b) => b.n - a.n)
-    : (() => {
-        const typeCounts = new Map<string, number>();
-        calls.forEach((c) => {
-          const t = c.fields.type.value || '미분류';
-          typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
-        });
-        return Array.from(typeCounts, ([type, n]) => ({ type, n })).sort((a, b) => b.n - a.n);
-      })();
-  const typeColors = ['#4f46e5', '#0891b2', '#d97706', '#be185d', '#059669', '#7c3aed', '#0284c7', '#65a30d'];
-
-  // 시간대별 처리량 — 오늘 자정 이후 접수된 콜을 시간별로 센 실측 집계 (/api/reviews/stats).
-  // stats?.hourlyThroughput ?? {} — 백엔드 계약이 어긋나 필드가 안 오는 경우에도 전체 페이지가
-  // 죽지 않게 방어한다(Object.entries(undefined)는 예외를 던진다).
-  const hourlyThroughput = Object.entries(stats?.hourlyThroughput ?? {})
-    .map(([h, n]) => ({ h: `${h}시`, n, hourNum: Number(h) }))
-    .sort((a, b) => a.hourNum - b.hourNum);
-
-  // 상담사별 악성콜 밸런싱 — 상담사 이름별 악성콜 확정 건수 실측 집계.
-  const agentBalance = Object.entries(stats?.maliciousByCounselor ?? {})
-    .map(([name, n]) => ({ name, n }))
-    .sort((a, b) => b.n - a.n);
-
-  // 검토 대기 중 — AI 분석은 끝났지만 상담사 확인이 아직 안 된 콜.
-  const inReviewCalls = calls.filter((c) => c.status === 'review' || c.status === 'analyzing');
-  const inReview = inReviewCalls.length;
-  const maliciousCalls = calls.filter((c) => c.grade === 'malicious');
-  const normalCalls = calls.filter((c) => c.grade === 'normal');
-  const praiseCalls = calls.filter((c) => c.grade === 'praise');
-
-  const avgMM = Math.floor(avgReview / 60);
-  const avgSS = (avgReview % 60).toString().padStart(2, '0');
-
-  // 개요 카드 클릭 → 그 숫자를 이룬 콜 목록을 사이드 드로어로. calls는 최근 100건 캡이 있어서
-  // 카드 상단 숫자(DB 전체 집계)와 드로어에 뜨는 실제 행 수가 다를 수 있다 — note로 그 사실을 밝힌다.
-  // "전체" 카드는 등급별 배지(악성/일반/칭찬) 합과 안 맞을 수 있다 — 배지는 등급 판정이 끝난
-  // 콜만 세고, 전체는 상태 상관없이(분석 중·판정 대기 포함) DB 전체 콜 수라 정의 자체가 다르다.
-  const [drawerFilter, setDrawerFilter] =
-    useState<null | 'processed' | 'avgReview' | 'malicious' | 'inReview' | 'normal' | 'praise' | 'total'>(null);
-  const DRAWER_CAP_NOTE = '최근 100건 중에서 찾은 목록입니다 · 카드 숫자는 DB 전체 집계입니다.';
-  const DRAWER_CONFIG: Record<NonNullable<typeof drawerFilter>, { title: string; calls: Call[]; note: string }> = {
-    processed: { title: '오늘 처리 건수', calls: processed, note: `확정 + 후속 처리 포함 · ${DRAWER_CAP_NOTE}` },
-    avgReview: { title: '평균 검토 시간에 포함된 콜', calls: processedWithTime, note: `검토 소요 시간이 기록된 콜만 · ${DRAWER_CAP_NOTE}` },
-    malicious: { title: '악성콜로 확정된 콜', calls: maliciousCalls, note: DRAWER_CAP_NOTE },
-    inReview: { title: '검토 대기 중인 콜', calls: inReviewCalls, note: `AI 분석 완료 후 상담사 확인 대기 · ${DRAWER_CAP_NOTE}` },
-    normal: { title: '일반으로 판정된 콜', calls: normalCalls, note: DRAWER_CAP_NOTE },
-    praise: { title: '칭찬콜로 판정된 콜', calls: praiseCalls, note: DRAWER_CAP_NOTE },
-    total: { title: '전체 콜', calls, note: `상태·판정 여부 상관없이 전체 · ${DRAWER_CAP_NOTE}` },
-  };
-
-  function openInLedger(callId: string) {
-    setDrawerFilter(null);
-    setQuery(''); // 이전 검색어가 남아있으면 filteredCalls에서 이 콜이 걸러져 안 보일 수 있다
-    setOpenId(callId);
-    navigate('/admin/ledger');
-  }
-
-  function toggleLedgerDetail(callId: string) {
-    if (openId === callId) {
-      setOpenId(null);
-      return;
-    }
-    setOpenId(callId);
-  }
-
-  const filteredCalls = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return calls;
-    return calls.filter(
-      (c) =>
-        c.callId.toLowerCase().includes(q) ||
-        summaryText(c.fields.summary.value).toLowerCase().includes(q) ||
-        c.fields.type.value.toLowerCase().includes(q),
-    );
-  }, [calls, query]);
-
-  function handleExportLedger() {
-    downloadCsv(
-      `callwrap-상담대장-${new Date().toISOString().slice(0, 10)}.csv`,
-      ['통화ID', '상담유형', '상담분류', '상담등급', '요약', '상태', '검토시간(초)'],
-      filteredCalls.map((c) => [
-        c.callId,
-        c.fields.type.value,
-        c.fields.category.value,
-        gradeLabel[c.grade],
-        summaryText(c.fields.summary.value),
-        statusLabel[c.status],
-        c.reviewSec ?? '',
-      ]),
-    );
-  }
+    : EMPTY_COUNTERS;
 
   return (
-    <div className="content">
-      <div className="admin-stats">
-        <button className="stat-pill malicious" onClick={() => setDrawerFilter('malicious')}>
-          악성 <b>{maliciousCount}</b>
-        </button>
-        <button className="stat-pill normal" onClick={() => setDrawerFilter('normal')}>
-          일반 <b>{normalCount}</b>
-        </button>
-        <button className="stat-pill praise" onClick={() => setDrawerFilter('praise')}>
-          칭찬 <b>{praiseCount}</b>
-        </button>
-        <button className="stat-pill total" onClick={() => setDrawerFilter('total')}>
-          전체 <b>{totalCount}</b>
-        </button>
-      </div>
+    <div className="cw aw">
+      <AppTopbar counters={counters} />
 
-      <div className="admin-tabs">
+      <nav className="aw-tabs">
         {ADMIN_TABS.map((t) => (
           <button
             key={t.key}
-            className={`admin-tab ${tab === t.key ? 'active' : ''}`}
+            className={`aw-tab ${active === t.key ? 'on' : ''}`}
             onClick={() => navigate(t.key === 'overview' ? '/admin' : `/admin/${t.key}`)}
-            title={t.label}
           >
-            {t.short}
+            {t.label}
           </button>
         ))}
-      </div>
+      </nav>
 
-      {/* ═══════ 개요 ═══════ */}
-      {tab === 'overview' && (
-        <>
-          <div className="section-label">오늘 현황</div>
-          <div className="metric-row four">
-            <button className="metric" onClick={() => setDrawerFilter('processed')}>
-              <div className="label">오늘 처리 건수</div>
-              {/* calls.length로 fallback하면 안 됨 — 확정된 게 0건이어도 "로드된 콜 전체 수"를
-                  보여주게 돼서 대기열 화면의 "오늘 처리 완료"(같은 계산식)와 값이 어긋난다. */}
-              <div className="value">{processed.length}</div>
-              <div className="sub">확정 + 후속 처리 포함 · 클릭해서 목록 보기</div>
-            </button>
-            <button className="metric" onClick={() => setDrawerFilter('avgReview')}>
-              <div className="label">평균 검토 시간</div>
-              <div className="value">
-                {avgReview > 0 ? (
-                  <>
-                    {avgMM}:{avgSS}
-                  </>
-                ) : (
-                  EMPTY.duration
-                )}
-              </div>
-              <div className="sub">확정 + 후속 처리 콜 기준 · 클릭해서 목록 보기</div>
-            </button>
-            <button className="metric" onClick={() => setDrawerFilter('malicious')}>
-              <div className="label">악성콜 발생률</div>
-              <div className="value">
-                {maliciousRate}
-                <small>%</small>
-              </div>
-              <div className="sub warn">감정노동 보호 {maliciousCount}건 발생 · 클릭해서 목록 보기</div>
-            </button>
-            <button className="metric" onClick={() => setDrawerFilter('inReview')}>
-              <div className="label">검토 대기 중</div>
-              <div className="value">
-                {inReview}
-                <small> 건</small>
-              </div>
-              <div className="sub">AI 분석 완료 후 상담사 확인 대기 · 클릭해서 목록 보기</div>
-            </button>
-          </div>
-
-          <p className="overview-caption">
-            <strong>평균 검토 시간</strong>은 상담사가 실제 검토한 시간 기준입니다. 카드를 클릭하면 해당 콜 목록을 볼 수 있습니다.
-          </p>
-
-          {/* AI 판정 5종(유형·분류·등급·요약·후속필요)의 confidence를 집계한 값 — 0.9 이상을
-              고신뢰로 본다(ReviewQueryService의 기준과 동일). 판정이 하나도 없으면 EMPTY.confidence. */}
-          <div className="section-label">AI 신뢰도</div>
-          <div className="metric-row">
-            <div className="metric">
-              <div className="label">평균 신뢰도</div>
-              <div className="value">
-                {stats?.avgConfidence != null ? (
-                  <>
-                    {Math.round(stats.avgConfidence * 100)}
-                    <small>%</small>
-                  </>
-                ) : (
-                  EMPTY.confidence
-                )}
-              </div>
-              <div className="sub">유형·분류·등급·요약·후속필요 판정 평균</div>
-            </div>
-            <div className="metric">
-              <div className="label">고신뢰 판정 비율</div>
-              <div className="value">
-                {stats?.highConfidenceRate != null ? (
-                  <>
-                    {Math.round(stats.highConfidenceRate * 100)}
-                    <small>%</small>
-                  </>
-                ) : (
-                  EMPTY.confidence
-                )}
-              </div>
-              <div className="sub">confidence 0.9 이상 판정 비율</div>
-            </div>
-          </div>
-
-          <div className="section-label">처리 추이</div>
-          <div className="chart-card">
-            <div className="chart-head">
-              <h3>
-                {chartView === 'type' && '상담유형 분포'}
-                {chartView === 'agent' && '상담사별 악성콜 밸런싱'}
-                {chartView === 'hourly' && '시간대별 처리량'}
-              </h3>
-              <div className="chart-switch">
-                <button className={chartView === 'type' ? 'active' : ''} onClick={() => setChartView('type')}>유형 분포</button>
-                <button className={chartView === 'agent' ? 'active' : ''} onClick={() => setChartView('agent')}>악성콜 밸런싱</button>
-                <button className={chartView === 'hourly' ? 'active' : ''} onClick={() => setChartView('hourly')}>시간대별</button>
-              </div>
-            </div>
-
-            {chartView === 'type' && (
-              <>
-                <div className="sub">오늘 처리된 콜 기준</div>
-                {typeDist.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={230}>
-                    <BarChart data={typeDist} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                      <XAxis dataKey="type" tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                      <Bar dataKey="n" radius={[5, 5, 0, 0]} name="건수" isAnimationActive={false}>
-                        {typeDist.map((_, i) => (
-                          <Cell key={i} fill={typeColors[i % typeColors.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="choice-hint">아직 처리된 콜이 없습니다.</p>
-                )}
-              </>
-            )}
-
-            {chartView === 'agent' && (
-              <>
-                <div className="sub">특정 상담사 편중 방지 모니터링</div>
-                {agentBalance.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={230}>
-                    <BarChart data={agentBalance} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                      <Bar dataKey="n" radius={[5, 5, 0, 0]} fill="var(--danger)" name="악성콜" isAnimationActive={false} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="choice-hint">악성콜로 확정된 건이 아직 없습니다.</p>
-                )}
-              </>
-            )}
-
-            {chartView === 'hourly' && (
-              <>
-                <div className="sub">AI 후처리 자동화로 피크 시간 처리 지연 완화 (오늘 기준)</div>
-                {hourlyThroughput.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={230}>
-                    <LineChart data={hourlyThroughput} margin={{ top: 4, right: 12, left: -18, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-2)" vertical={false} />
-                      <XAxis dataKey="h" tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
-                      <Line type="monotone" dataKey="n" stroke="var(--brand)" strokeWidth={2.5} dot={{ r: 3 }} name="처리 건수" isAnimationActive={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="choice-hint">오늘 접수된 콜이 아직 없습니다.</p>
-                )}
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ═══════ 측정 결과 ═══════ */}
-      {tab === 'measure' && (
-        <>
-          <div className="dense-head">
-            <h2>측정 결과</h2>
-            <p>{MEASUREMENT_LABEL} — 실제 상담 녹취가 아니라 합성 음성·생성 대본 기준입니다. 실제 상담 녹취로 재검증되기 전까지 참고치로만 사용해 주세요.</p>
-          </div>
-
-          <div className="measure-grid">
-            {PIPELINE_METRICS.map((m) => (
-              <div key={m.key} className="metric measure-metric">
-                <div className="label">{m.label}</div>
-                <div className="value">
-                  {m.macroF1}
-                  <small> Macro-F1</small>
-                </div>
-                <div className="sub">{m.note}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="dense-head" style={{ marginTop: 26 }}>
-            <h2>상담등급 판정 모델 선정 비교</h2>
-            <p>183건 5-fold 교차검증 · {MEASUREMENT_LABEL}</p>
-          </div>
-          <div className="ledger" style={{ overflowX: 'auto' }}>
-            <table className="cmp-table">
-              <thead>
-                <tr><th>모델</th><th>파라미터</th><th>Macro-F1</th><th>악성 Recall</th><th>채택</th></tr>
-              </thead>
-              <tbody>
-                {GRADE_MODEL_COMPARISON.map((r) => (
-                  <tr key={r.model}>
-                    <td>{r.model}</td>
-                    <td>{r.params}</td>
-                    <td>{r.macroF1.toFixed(4)}</td>
-                    <td>{r.maliciousRecall.toFixed(4)}</td>
-                    <td>{r.adopted ? '✓ 채택' : ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="honesty-note" style={{ marginTop: 12 }}>{GRADE_MODEL_NOTE}</div>
-
-          <div className="dense-head" style={{ marginTop: 26 }}>
-            <h2>규칙 기반 vs LLM 자동 추출</h2>
-            <p>같은 전사·같은 골든셋 정답으로 채점해 판단형·분류형 필드의 정확도를 비교하는 절차입니다.</p>
-          </div>
-          <div className="measure-grid">
-            <PendingMetric
-              label="판단형 필드 (등급·후속 처리)"
-              plan="규칙 기반 베이스라인 구현과 골든셋 정답이 준비되면 LLM 대비 정확도 비교가 여기 표시됩니다."
-            />
-            <PendingMetric
-              label="분류형 필드 (유형·분류, Macro-F1)"
-              plan="규칙 기반 베이스라인 구현과 골든셋 정답이 준비되면 LLM 대비 Macro-F1 비교가 여기 표시됩니다."
-            />
-          </div>
-        </>
-      )}
-
-      {/* ═══════ 등급·분포 ═══════ */}
-      {tab === 'grade' && (
-        <>
-          <div className="dense-head">
-            <h2>상담등급 판정 성능</h2>
-            <p>{MEASUREMENT_LABEL}</p>
-          </div>
-          <div className="measure-grid" style={{ marginBottom: 26 }}>
-            {PIPELINE_METRICS.filter((m) => m.key === 'grade').map((m) => (
-              <div key={m.key} className="metric measure-metric">
-                <div className="label">{m.label}</div>
-                <div className="value">
-                  {m.macroF1}
-                  <small> Macro-F1</small>
-                </div>
-                <div className="sub">{m.note}</div>
-              </div>
-            ))}
-            <PendingMetric
-              label="상담등급 혼동행렬"
-              plan="골든셋이 구축되면 정답(행) vs 자동판정(열) 혼동행렬이 여기 표시됩니다."
-            />
-          </div>
-
-          <p className="overview-caption">
-            상담유형 분포 차트는 <strong>개요</strong> 탭(처리 추이 → 유형 분포)에서 볼 수 있습니다.
-            sr_type.py(SR유형 8종) 모델이 analyze()에 병합되어 반영됩니다.
-          </p>
-
-          <div className="measure-grid">
-            <PendingMetric
-              label="골든셋 vs 실제 모집단 분포 비교"
-              plan="골든셋이 구축되면 희소 클래스 과표집 표본 분포와 실제 모집단 분포(불균형) 대조가 여기 표시됩니다."
-            />
-          </div>
-        </>
-      )}
-
-      {/* ═══════ 상담대장 ═══════ */}
-      {tab === 'ledger' && (
-        <>
-          <div className="dense-head">
-            <h2>상담대장</h2>
-            <p>전체 {calls.length}건 · 행을 클릭하면 AI 판정 상세가 펼쳐집니다.</p>
-          </div>
-
-          <div className="ledger-toolbar">
-            <input
-              className="ledger-search"
-              type="text"
-              placeholder="통화ID · 요약 · 상담유형 검색"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button className="btn primary sm" onClick={handleExportLedger}>
-              CSV 내려받기
-            </button>
-          </div>
-
-          <div className="ledger">
-            <div className="ledger-row ledger-head">
-              <span>통화</span>
-              <span>유형</span>
-              <span>분류</span>
-              <span>등급</span>
-              <span>요약</span>
-              <span>신뢰도</span>
-              <span>상태</span>
-              <span>검토시간</span>
-            </div>
-
-            {filteredCalls.length === 0 ? (
-              <div className="empty">
-                <h3>검색 결과가 없습니다</h3>
-                <p>다른 검색어로 다시 시도해 보세요.</p>
-              </div>
-            ) : (
-              filteredCalls.map((c) => {
-                const tiers = LEDGER_FIELDS.map((k) => c.fields[k].tier);
-                const open = openId === c.callId;
-                const detail = ledgerDetails[c.callId];
-                const counselorSentiments = (detail?.utteranceSentiments ?? []).filter(
-                  (sentiment) => sentiment.speaker === 'agent',
-                );
-                return (
-                  <div key={c.callId} className="ledger-item">
-                    <button
-                      className="ledger-row ledger-body"
-                      onClick={() => toggleLedgerDetail(c.callId)}
-                      aria-expanded={open}
-                    >
-                      <span className="cid">
-                        {open ? '▾' : '▸'} {fmtCallNo(c.callNo)}
-                        <small>{fmtTime(c.startedAt)}</small>
-                      </span>
-                      <span>{c.fields.type.value || EMPTY.choiceValue}</span>
-                      <span>{c.fields.category.value || EMPTY.choiceValue}</span>
-                      <span className={`badge-pill grade-${c.grade}`}>{gradeLabel[c.grade]}</span>
-                      <span className="ellipsis">{summaryText(c.fields.summary.value) || EMPTY.summary}</span>
-                      <span className="tier-dots">
-                        {tiers.map((t, i) => (
-                          <span key={i} className={`dot ${t}`} />
-                        ))}
-                      </span>
-                      <span>{statusLabel[c.status]}</span>
-                      <span className="tnum">{fmtDuration(c.reviewSec)}</span>
-                    </button>
-
-                    {open && (
-                      <div className="ledger-detail">
-                        <div className="ledger-detail-fields">
-                          {LEDGER_FIELDS.map((k) => (
-                            <div key={k} className="ledger-field">
-                              <span className="k">{fieldLabel[k]}</span>
-                              <span className={`tier-badge ${c.fields[k].tier}`}>
-                                {tierLabel[c.fields[k].tier]} {Math.round(c.fields[k].confidence * 100)}%
-                              </span>
-                              <span className="v">
-                                {k === 'followup' ? (c.fields[k].value ? '필요' : '불필요') : String(c.fields[k].value || EMPTY.fieldValue)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="counselor-sentiments">
-                          <div className="k">상담사 발화별 감정</div>
-                          {!detail ? (
-                            <span className="muted">불러오는 중…</span>
-                          ) : counselorSentiments.length === 0 ? (
-                            <span className="muted">분석 결과 없음</span>
-                          ) : (
-                            counselorSentiments.map((sentiment) => {
-                              const utterance = detail.transcript.find(
-                                (item) => item.id === sentiment.utteranceId,
-                              );
-                              return (
-                                <div key={sentiment.utteranceId} className="counselor-sentiment-row">
-                                  <span className="sentiment-score">
-                                    {sentiment.score > 0 ? '+' : ''}{sentiment.score.toFixed(2)}
-                                  </span>
-                                  <span>{utterance?.text ?? sentiment.utteranceId}</span>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                        <button className="btn ghost sm" onClick={() => navigate(`/review/${c.callId}`)}>
-                          검토 화면 열기 →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ═══════ 상담품질 자동평가 ═══════ */}
-      {tab === 'quality' && (
-        <>
-          <div className="honesty-note">
-            배점 체계(100점 · 4대분류 · 11소분류)는 한국사회보장정보원 「상담품질 평가기술서」 공식 기준입니다.
-            <strong> 채점 로직은 아직 파이프라인에 연동되지 않았습니다.</strong> 아래는 배점 구조만 반영한 것이며,
-            "기준표를 그대로 구현했다"는 표현은 쓰지 않습니다 — 배점만 공식, 통화별 채점 결과는 아직 없습니다.
-          </div>
-
-          <div className="dense-head" style={{ marginTop: 20 }}>
-            <h2>배점 구조</h2>
-            <p>4대분류 100점 · 11소분류</p>
-          </div>
-          <div className="quality-sub-card">
-            <table className="cmp-table sub-table">
-              <thead>
-                <tr><th>대분류</th><th>소분류</th><th>배점</th><th>채점 방식</th></tr>
-              </thead>
-              <tbody>
-                {QUALITY_CATEGORIES.flatMap((cat) =>
-                  cat.subKeys.map((key, i) => {
-                    const sub = QUALITY_SUBCATEGORIES[key];
-                    return (
-                      <tr key={key}>
-                        {i === 0 && (
-                          <td rowSpan={cat.subKeys.length}>
-                            {cat.label} ({cat.max}점)
-                          </td>
-                        )}
-                        <td>{sub.label}</td>
-                        <td>{sub.max}</td>
-                        <td>
-                          <span className={`conf-badge ${sub.confidence}`}>
-                            {sub.confidence === 'auto' ? '자동' : 'AI+사람'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  }),
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="measure-grid" style={{ marginTop: 26 }}>
-            <PendingMetric
-              label="통화별 채점 결과"
-              plan="채점 로직이 파이프라인에 연동되고 실제 상담 녹취로 검증되면 통화별 총점·항목별 점수·판정 근거가 여기 표시됩니다."
-            />
-          </div>
-        </>
-      )}
-
-      {/* ═══════ 홀드아웃 검증 ═══════ */}
-      {tab === 'holdout' && (
-        <>
-          <div className="dense-head">
-            <h2>홀드아웃 검증</h2>
-            <p>분류 임계값·규칙을 조정셋(골든셋)의 실측 분포만 보고 정하면 자기 데이터에 맞춘 값(in-sample)이 됩니다. 다른 시드로 생성한 별도 세트에 규칙을 그대로 적용해 재측정하는 절차입니다.</p>
-          </div>
-
-          <div className="measure-grid">
-            <PendingMetric
-              label="조정셋 대비 홀드아웃 성능"
-              plan="별도 시드로 홀드아웃 세트가 구축되면 조정셋과 동일 지표로 재측정한 대조표가 여기 표시됩니다."
-            />
-            <PendingMetric
-              label="STT 정확도"
-              plan="실제 상담 녹취로 재검증되면(현재는 합성 음성 기준) 정확도가 여기 표시됩니다. 실제 녹취는 겹침말·배경잡음·사투리·비문이 있어 합성 음성과 다를 수 있습니다."
-            />
-          </div>
-
-          <div className="honesty-note" style={{ marginTop: 16 }}>
-            <strong>현재 상태</strong> — {MEASUREMENT_LABEL}만 확보돼 있고, 별도 시드의 홀드아웃 세트는 아직 구축 전입니다.
-            "측정 결과" 탭의 수치도 이 홀드아웃 검증을 거치지 않은 조정셋 기준 값입니다.
-          </div>
-        </>
-      )}
-
-      {/* ═══════ FAQ 검수 ═══════ */}
-      {tab === 'faq' && <FaqReviewPanel />}
-
-      {drawerFilter && (
-        <MetricDrawer
-          title={DRAWER_CONFIG[drawerFilter].title}
-          note={DRAWER_CONFIG[drawerFilter].note}
-          calls={DRAWER_CONFIG[drawerFilter].calls}
-          onSelect={openInLedger}
-          onClose={() => setDrawerFilter(null)}
-        />
-      )}
+      {active === 'overview' && <OverviewTab stats={stats} />}
+      {active === 'ledger' && <LedgerTab />}
+      {active === 'counselors' && <CounselorsTab />}
+      {active === 'customers' && <CustomersTab />}
+      {active === 'faq' && <FaqTab />}
     </div>
   );
 }

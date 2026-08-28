@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { CallStatus } from '../../api/types';
 
 /* ─────────────────────────────────────────────────────────────
    통합 검토 화면의 작은 조각들 — 아이콘 / 배지 / 오버레이 / 달력.
@@ -60,6 +61,17 @@ const PROGRESS_CLASS: Record<Progress, string> = {
   '진행 중': 'prog',
   완료: 'done',
 };
+
+/**
+ * DB CallStatus → 화면의 진행 상황 3단계.
+ * `진행 중`은 DB에 없는 상태라 기존 CONFIRMED+needsFollowup(= web의 followup)을 그대로 쓴다
+ * (상담사 지침 9절). 상담사 목록·관리자 상담대장이 같은 함수를 쓴다.
+ */
+export function progressOf(status: CallStatus): Progress {
+  if (status === 'confirmed') return '완료';
+  if (status === 'followup') return '진행 중';
+  return '검토 대기';
+}
 
 /** 상태별 색 클래스. 목록 배지와 상단바 카운터가 같은 색을 쓰도록 한 곳에서 준다. */
 export function progressClass(value: Progress): string {
