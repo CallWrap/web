@@ -18,6 +18,11 @@ export const CATEGORY_COLORS = [
   '#4d7c0f', '#a21caf', '#475569', '#a8a29e',
 ];
 
+// 축 상한 계산은 axisMax.ts에 있다(테스트 러너가 .tsx를 못 읽어 순수 계산만 분리).
+import { axisMax } from './axisMax';
+
+export { axisMax };
+
 /* ── 누적 세로 막대 — 시간대별 처리 추이 ───────────────────── */
 
 export interface StackedBar {
@@ -29,7 +34,7 @@ export interface StackedBar {
 
 export function StackedBars({ data }: { data: StackedBar[] }) {
   const totals = data.map((d) => d.normal + d.praise + d.malicious);
-  const max = Math.max(1, ...totals);
+  const max = axisMax(totals);
 
   return (
     <div className="aw-chart">
@@ -39,7 +44,7 @@ export function StackedBars({ data }: { data: StackedBar[] }) {
           return (
             <div className="aw-bar" key={d.label}>
               <span className="v">{total || ''}</span>
-              {/* 높이는 비율로. column-reverse라 아래부터 일반 → 칭찬 → 악성 순으로 쌓인다 */}
+              {/* 높이는 고정 축(axisMax) 기준. column-reverse라 아래부터 일반 → 칭찬 → 악성 순으로 쌓인다 */}
               <div className="aw-stack" style={{ height: `${(total / max) * 100}%` }}>
                 {(['normal', 'praise', 'malicious'] as const).map((k) =>
                   d[k] > 0 ? (
@@ -76,7 +81,7 @@ function rankColor(rank: number, total: number): string {
  * 안 주면 1위→꼴찌 그라데이션이 걸린다.
  */
 export function RankedBars({ data, color }: { data: { label: string; value: number }[]; color?: string }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
+  const max = axisMax(data.map((d) => d.value));
   return (
     <div className="aw-chart">
       <div className="aw-bars">
@@ -170,7 +175,7 @@ export function GradeBars({ counts }: { counts: { malicious: number; normal: num
     { label: '일반콜', value: counts.normal, color: GRADE_COLOR.normal },
     { label: '칭찬콜', value: counts.praise, color: GRADE_COLOR.praise },
   ];
-  const max = Math.max(1, ...rows.map((r) => r.value));
+  const max = axisMax(rows.map((r) => r.value), 3);
   return (
     <div className="aw-hbars">
       {rows.map((r) => (
@@ -188,25 +193,31 @@ export function GradeBars({ counts }: { counts: { malicious: number; normal: num
 
 /* ── 값에 따라 색이 변하는 세로 막대 — 발화 감정 분석 ──────── */
 
-/** 값이 오를수록 청록 → 황색 → 적색 */
-function sentimentColor(v: number, max: number): string {
-  const t = max > 0 ? v / max : 0;
-  if (t >= 0.8) return GRADE_COLOR.malicious;
-  if (t >= 0.55) return '#9a6b00';
+/**
+ * 부정 발화 비율(%)에 따른 색. 절대값으로 판정한다 — 상담사 상태 임계값
+ * (callwrap.counselor-health: 주의 25%, 휴식 권장 45%)과 같은 기준을 쓴다.
+ *
+ * 예전엔 그 상담사 7일치의 최댓값 대비 비율로 색을 골랐다. 그러면 부정 발화가 8%뿐인
+ * 양호한 상담사도 자기 중 제일 높은 날은 만점 적색으로 칠해져서, 55%인 상담사와
+ * 화면상 구분이 안 됐다. 패널의 의미가 뒤집히는 버그였다.
+ */
+function sentimentColor(v: number): string {
+  if (v >= 45) return GRADE_COLOR.malicious;
+  if (v >= 25) return '#9a6b00';
   return GRADE_COLOR.praise;
 }
 
+/** 퍼센트 지표라 축은 항상 0~100 고정이다. 상대 스케일을 쓰면 8%와 55%가 같은 높이가 된다. */
 export function SentimentBars({ data }: { data: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
   return (
     <div className="aw-chart">
       <div className="aw-bars">
         {data.map((d) => (
           <div className="aw-bar" key={d.label}>
-            <span className="v" style={{ color: sentimentColor(d.value, max), fontWeight: 700 }}>{d.value}</span>
+            <span className="v" style={{ color: sentimentColor(d.value), fontWeight: 700 }}>{d.value}</span>
             <div
               className="aw-stack"
-              style={{ height: `${(d.value / max) * 100}%`, background: sentimentColor(d.value, max) }}
+              style={{ height: `${Math.min(100, d.value)}%`, background: sentimentColor(d.value) }}
             />
           </div>
         ))}
@@ -231,7 +242,7 @@ export interface MonthPoint {
 
 /** 악성콜이 있던 달은 적색, 칭찬만 있으면 청록, 둘 다 없으면 회색 */
 export function MonthBars({ data }: { data: MonthPoint[] }) {
-  const max = Math.max(1, ...data.map((d) => d.total));
+  const max = axisMax(data.map((d) => d.total));
   return (
     <div className="aw-chart">
       <div className="aw-bars">

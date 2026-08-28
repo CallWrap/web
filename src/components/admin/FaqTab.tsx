@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { BackendFaqEntry } from '../../api/backendTypes';
+import type { BackendFaqEntry, BackendFaqSimilar } from '../../api/backendTypes';
 import type { Call } from '../../api/types';
 import {
   discardFaqEntry,
   getFaqEntries,
+  getFaqSimilar,
+  mergeFaqEntry,
   publishFaqEntry,
   triggerFaqBatch,
   updateFaqEntry,
@@ -29,10 +31,14 @@ const STATUS_TABS: { key: StatusKey; label: string }[] = [
   { key: 'PUBLISHED', label: '게시됨' },
   { key: 'DISCARDED', label: '반려됨' },
 ];
-const STATUS_LABEL: Record<StatusKey, string> = { DRAFT: '검수 대기', PUBLISHED: '게시됨', DISCARDED: '반려됨' };
-const STATUS_CLASS: Record<StatusKey, string> = { DRAFT: 'prog', PUBLISHED: 'done', DISCARDED: 'normal' };
+const STATUS_LABEL: Record<BackendFaqEntry['status'], string> = {
+  DRAFT: '검수 대기', PUBLISHED: '게시됨', DISCARDED: '반려됨', MERGED: '병합됨',
+};
+const STATUS_CLASS: Record<BackendFaqEntry['status'], string> = {
+  DRAFT: 'prog', PUBLISHED: 'done', DISCARDED: 'normal', MERGED: 'normal',
+};
 
-/** 처리 방식 3택 — `FAQ 업데이트`는 merge-into API가 없어 아직 못 쓴다 */
+/** 처리 방식 3택. FAQ 업데이트는 위에서 선택한 기존 항목에 초안을 병합한다. */
 type Action = '신규 등록' | 'FAQ 업데이트' | '추가 안 함';
 
 export function FaqTab() {
@@ -50,6 +56,8 @@ export function FaqTab() {
   const [busy, setBusy] = useState<'load' | 'batch' | 'save' | null>(null);
   const [sourceCalls, setSourceCalls] = useState<Call[]>([]);
   const [detailOf, setDetailOf] = useState<Call | null>(null);
+  const [similar, setSimilar] = useState<BackendFaqSimilar[]>([]);
+  const [targetId, setTargetId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setBusy('load');
@@ -109,6 +117,27 @@ export function FaqTab() {
     };
   }, [selected, fetchCall]);
 
+  useEffect(() => {
+    if (!selected || selected.status !== 'DRAFT') {
+      setSimilar([]);
+      setTargetId(null);
+      return;
+    }
+    let alive = true;
+    getFaqSimilar(selected.id)
+      .then((items) => {
+        if (!alive) return;
+        setSimilar(items);
+        setTargetId((current) => items.some((item) => item.id === current) ? current : null);
+      })
+      .catch(() => {
+        if (alive) setSimilar([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selected]);
+
   async function generate() {
     setBusy('batch');
     try {
@@ -123,6 +152,10 @@ export function FaqTab() {
 
   async function save() {
     if (!selected) return;
+    if (action === 'FAQ 업데이트' && !targetId) {
+      pushToast('업데이트할 기존 FAQ를 선택해 주세요');
+      return;
+    }
     setBusy('save');
     try {
       // 질문·답변 수정은 어느 처리 방식이든 먼저 반영한다
@@ -136,7 +169,11 @@ export function FaqTab() {
         await discardFaqEntry(selected.id);
         pushToast('초안을 반려했습니다');
       } else {
-        pushToast('FAQ 업데이트는 백엔드 병합 API가 필요합니다 · 질문·답변 수정만 저장했습니다');
+        // 위에서 targetId를 검증했으므로 질문·답변만 먼저 저장되는 부분 성공이 생기지 않는다.
+        const mergeTargetId = targetId;
+        if (!mergeTargetId) throw new Error('FAQ merge target is required');
+        await mergeFaqEntry(selected.id, mergeTargetId);
+        pushToast('기존 FAQ를 업데이트하고 이전 내용을 이력에 보관했습니다');
       }
       await load();
     } catch {
@@ -149,6 +186,7 @@ export function FaqTab() {
     setQuestion(selected?.question ?? '');
     setAnswer(selected?.answer ?? '');
     setAction('신규 등록');
+    setTargetId(null);
   }
 
   return (
@@ -298,8 +336,35 @@ export function FaqTab() {
               <span>최종 수정</span>
               <span />
             </div>
-            {/* 초안과 기존 FAQ의 유사도를 비교하는 API가 없다 */}
-            <div className="aw-blank">유사도 대조 API가 없어 관련 FAQ를 찾을 수 없습니다.</div>
+            {similar.length === 0 ? (
+              <div className="aw-blank">같은 소분류의 기존 FAQ가 없습니다.</div>
+            ) : similar.map((item) => (
+              <div
+                className={`aw-row ${targetId === item.id ? 'sel' : ''}`}
+                style={{ gridTemplateColumns: SIM_COLS }}
+                key={item.id}
+              >
+                <span style={{ color: item.similarity >= 0.8 ? '#c8102e' : undefined, fontWeight: item.similarity >= 0.8 ? 700 : 400 }}>
+                  {Math.round(item.similarity * 100)}%
+                </span>
+                <span className="l">{item.question}</span>
+                <span>{item.subcategory}</span>
+                <span>{STATUS_LABEL[item.status]}</span>
+                <span>{item.updatedAt.slice(0, 10)}</span>
+                <span>
+                  <button
+                    className="cw-btn"
+                    style={{ width: 72, padding: 0 }}
+                    onClick={() => {
+                      setTargetId(item.id);
+                      setAction('FAQ 업데이트');
+                    }}
+                  >
+                    {targetId === item.id ? '선택됨' : '선택'}
+                  </button>
+                </span>
+              </div>
+            ))}
           </section>
 
           <div className="cw-actions">
@@ -311,9 +376,7 @@ export function FaqTab() {
                   className={action === a ? 'on' : ''}
                   style={{ width: 96 }}
                   onClick={() => setAction(a)}
-                  // 병합 대상 FAQ를 고를 수 없으니 업데이트도 고를 수 없다
-                  disabled={a === 'FAQ 업데이트'}
-                  title={a === 'FAQ 업데이트' ? '유사도 대조·병합 API가 필요합니다' : undefined}
+                  disabled={a === 'FAQ 업데이트' && similar.length === 0}
                 >
                   {a}
                 </button>

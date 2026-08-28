@@ -1,7 +1,13 @@
-import { useMemo, useState } from 'react';
-import type { BackendReviewStats } from '../../api/backendTypes';
+import { useEffect, useMemo, useState } from 'react';
+import type {
+  BackendCounselorSummary,
+  BackendCustomerSummary,
+  BackendReviewStats,
+} from '../../api/backendTypes';
+import { getCounselors, getCustomers, getFaqEntries } from '../../api/api';
 import { CalendarIcon, CalendarPop, Popover, toISODate } from '../counselor/CounselorBits';
-import { Donut, GRADE_COLOR, RankedBars, type Slice } from './Charts';
+import { Donut, GRADE_COLOR, RankedBars, StackedBars, type Slice } from './Charts';
+import { buildOverviewAlerts } from './overviewAlerts';
 
 /* ─────────────────────────────────────────────────────────────
    개요 탭 (Figma 17 · 지침 2절).
@@ -23,20 +29,80 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
   const [from, setFrom] = useState(monthStartISO);
   const [to, setTo] = useState(() => toISODate(new Date()));
   const [datePop, setDatePop] = useState<'from' | 'to' | null>(null);
+  const [counselors, setCounselors] = useState<BackendCounselorSummary[]>([]);
+  const [customers, setCustomers] = useState<BackendCustomerSummary[]>([]);
+  const [draftFaqCount, setDraftFaqCount] = useState(0);
 
-  // 시간대별 — 집계가 시간대 총계만 오고 등급별로 쪼개져 있지 않다.
-  // 총계를 특정 등급 색으로 칠하면 "전부 그 등급"으로 읽히므로 중립 남색 한 가지로 그리고
-  // 등급 범례도 띄우지 않는다(백엔드_요청사항_관리자화면.md 1번).
+  useEffect(() => {
+    let alive = true;
+    getCounselors(to)
+      .then((items) => {
+        if (alive) setCounselors(items);
+      })
+      .catch(() => {
+        if (alive) setCounselors([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [to]);
+
+  // 알림 패널 재료. 상담사 현황은 위에서 이미 받으므로 나머지 둘만 더 받는다.
+  useEffect(() => {
+    let alive = true;
+    Promise.all([getCustomers(), getFaqEntries('DRAFT')])
+      .then(([customerList, drafts]) => {
+        if (!alive) return;
+        setCustomers(customerList.items);
+        setDraftFaqCount(drafts.length);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const counselorCounts = useMemo(
+    () => counselors.map((item) => ({ label: item.name, value: item.totalCalls })),
+    [counselors],
+  );
+
+  const alerts = useMemo(
+    () => buildOverviewAlerts(stats, counselors, customers, draftFaqCount),
+    [stats, counselors, customers, draftFaqCount],
+  );
+
+  // 시간대별 — 등급(악성/칭찬/일반)으로 쪼갠 3색 누적 막대(피그마 17).
+  // 처리가 없던 시간대는 집계에 행이 없어서 그냥 빼면 09·11·13처럼 띄엄띄엄 남은 막대가
+  // 패널 폭을 나눠 가져 "그 시간대만 일했다"는 그림이 된다. 최소~최대 시각을 채워 빈 칸을 만든다.
   const hourly = useMemo(() => {
-    if (!stats) return [];
-    return Object.entries(stats.hourlyThroughput ?? {})
-      .map(([h, v]) => ({ label: String(h).padStart(2, '0'), value: Number(v) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    const rows = stats?.hourlyThroughput ?? [];
+    if (rows.length === 0) return [];
+    const byHour = new Map(rows.map((r) => [r.hour, r]));
+    const first = Math.min(...rows.map((r) => r.hour));
+    const last = Math.max(...rows.map((r) => r.hour));
+    return Array.from({ length: last - first + 1 }, (_, i) => {
+      const hour = first + i;
+      const row = byHour.get(hour);
+      return {
+        label: String(hour).padStart(2, '0'),
+        normal: row?.normal ?? 0,
+        praise: row?.praise ?? 0,
+        malicious: row?.malicious ?? 0,
+      };
+    });
   }, [stats]);
 
   const typeSlices: Slice[] = useMemo(() => {
     if (!stats) return [];
     return Object.entries(stats.typeCounts ?? {})
+      .map(([label, value]) => ({ label, value: Number(value) }))
+      .sort((a, b) => b.value - a.value);
+  }, [stats]);
+
+  const categorySlices: Slice[] = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.categoryCounts ?? {})
       .map(([label, value]) => ({ label, value: Number(value) }))
       .sort((a, b) => b.value - a.value);
   }, [stats]);
@@ -51,7 +117,9 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
             <span className="cw-rule" />
             {hourly.length > 0 && (
               <span className="aw-legend">
-                <span><i style={{ background: GRADE_COLOR.normal }} />처리 건수</span>
+                <span><i style={{ background: GRADE_COLOR.malicious }} />악성콜</span>
+                <span><i style={{ background: GRADE_COLOR.praise }} />칭찬콜</span>
+                <span><i style={{ background: GRADE_COLOR.normal }} />일반콜</span>
               </span>
             )}
             <span className="cw-sub">기간</span>
@@ -82,7 +150,7 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
           {hourly.length === 0 ? (
             <Blank text="시간대별 집계가 없습니다." />
           ) : (
-            <RankedBars data={hourly} color="#1f4b99" />
+            <StackedBars data={hourly} />
           )}
         </section>
 
@@ -95,9 +163,9 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
             <span className="cw-sub">정렬</span>
             <b style={{ fontSize: 12 }}>처리 많은 순</b>
           </div>
-          {/* 집계 API가 상담사별 "악성콜 수"만 주고 총 처리 건수를 주지 않는다.
-              악성 수를 처리 건수 자리에 그리면 다른 숫자가 되므로 비워 둔다. */}
-          <Blank text="상담사별 처리 건수 집계가 없습니다." />
+          {counselorCounts.length === 0
+            ? <Blank text="상담사별 처리 건수 집계가 없습니다." />
+            : <RankedBars data={counselorCounts} />}
         </section>
       </div>
 
@@ -107,9 +175,22 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
             <i className="cw-tick" />
             <h2>알림</h2>
             <span className="cw-rule" />
-            <span className="aw-count-red">0</span>
+            <span className="aw-count-red">{alerts.length}</span>
           </div>
-          <Blank text="알림 정보가 없습니다." />
+          {alerts.length === 0 ? (
+            <Blank text="알림 정보가 없습니다." />
+          ) : (
+            <div className="aw-alerts">
+              {alerts.map((a) => (
+                <div className="aw-alert" key={a.id}>
+                  <span className={`aw-alert-tag ${a.kind === '상담사' ? 'counselor' : a.kind === '민원인' ? 'customer' : 'faq'}`}>
+                    {a.kind}
+                  </span>
+                  <span className="aw-alert-text">{a.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="cw-panel" style={{ flex: 1, minHeight: 0 }}>
@@ -127,8 +208,7 @@ export function OverviewTab({ stats }: { stats: BackendReviewStats | null }) {
             <h2>중분류별</h2>
             <span className="cw-sub">전체</span>
           </div>
-          {/* 집계 API에 중분류(consultation_category) 항목이 없다 */}
-          <Blank text="중분류 집계가 없습니다." />
+          {categorySlices.length === 0 ? <Blank text="중분류 집계가 없습니다." /> : <Donut slices={categorySlices} />}
         </section>
       </div>
     </div>

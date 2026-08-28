@@ -50,6 +50,13 @@ export interface BackendReviewSummary {
   /** 확정 시각. 검토 전이면 null(non_null 직렬화라 응답에서 아예 빠질 수도 있음) */
   confirmedAt?: string | null;
   complainant?: BackendComplainant | null;
+  counselor?: { id: string; name: string } | null;
+  classification?: {
+    type: BackendJudgment<unknown> | null;
+    category: BackendJudgment<unknown> | null;
+    subcategory: BackendJudgment<unknown> | null;
+  } | null;
+  reviewSec?: number | null;
 }
 
 /** 민원인 정보. 백엔드가 아직 안 내려주면 필드 자체가 없다. */
@@ -147,9 +154,118 @@ export interface BackendFaqEntry {
   answer: string;
   sourceCallCount: number;
   sampleCallIds: string[];
-  status: 'DRAFT' | 'PUBLISHED' | 'DISCARDED';
+  status: 'DRAFT' | 'PUBLISHED' | 'DISCARDED' | 'MERGED';
   generatedAt: string;
   publishedAt: string | null;
+  updatedAt: string;
+  mergedIntoId?: string | null;
+}
+
+export interface BackendFaqSimilar {
+  id: string;
+  question: string;
+  subcategory: string;
+  status: 'DRAFT' | 'PUBLISHED';
+  updatedAt: string;
+  similarity: number;
+}
+
+export interface BackendFaqRevision {
+  id: string;
+  question: string;
+  answer: string;
+  revisedByCounselorId: string;
+  revisedAt: string;
+}
+
+export interface BackendCustomerSummary {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  org: string | null;
+  totalCalls: number;
+  maliciousCalls: number;
+  lastCalledAt: string | null;
+}
+
+export interface BackendCustomerList {
+  items: BackendCustomerSummary[];
+  page: number;
+  size: number;
+  totalCount: number;
+}
+
+export interface BackendCustomerDetail {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  org: string | null;
+  firstCalledAt: string | null;
+  gradeCounts: { malicious: number; normal: number; praise: number };
+  monthlyCounts: { month: string; total: number; malicious: number; praise: number }[];
+  topSubcategories: { label: string; count: number }[];
+}
+
+export interface BackendCustomerCall {
+  reviewId: string;
+  callNo: number;
+  calledAt: string;
+  counselorName: string;
+  grade: string | null;
+  summary: string | null;
+  callDurationSec: number | null;
+  reviewSec: number | null;
+}
+
+export interface BackendCustomerCallList {
+  items: BackendCustomerCall[];
+  page: number;
+  size: number;
+  totalCount: number;
+}
+
+export type BackendCounselorState = '양호' | '주의' | '휴식 권장';
+
+export interface BackendCounselorSummary {
+  id: string;
+  name: string;
+  team: string | null;
+  totalCalls: number;
+  maliciousCalls: number;
+  avgCallSec: number;
+  avgReviewSec: number;
+  state: BackendCounselorState;
+}
+
+export interface BackendCounselorDetail {
+  id: string;
+  name: string;
+  team: string | null;
+  totalCalls: number;
+  totalCallSec: number;
+  gradeCounts: { malicious: number; normal: number; praise: number };
+  sentimentTrend: { date: string; negativeScore: number }[];
+  state: BackendCounselorState;
+  stateReason: string;
+}
+
+export interface BackendCounselorCall {
+  reviewId: string;
+  callNo: number;
+  calledAt: string;
+  customerName: string | null;
+  grade: string | null;
+  summary: string | null;
+  callDurationSec: number | null;
+  reviewSec: number | null;
+  negativeScore: number;
+}
+
+export interface BackendCounselorCallList {
+  items: BackendCounselorCall[];
+  page: number;
+  size: number;
+  totalCount: number;
 }
 
 export interface BackendFaqBatchResult {
@@ -164,6 +280,14 @@ export interface BackendFaqBatchResult {
  * (2026-08-20 기준). hourlyThroughput은 오늘자 시간대별 처리 건수, maliciousByCounselor는
  * 상담사별 악성콜 건수 — 둘 다 native query GROUP BY 집계.
  */
+/** 시간대 하나의 등급별 처리 건수. 개요 탭의 3색 누적 막대(피그마 17)가 이걸 그대로 쌓는다. */
+export interface BackendHourlyGrade {
+  hour: number;
+  normal: number;
+  praise: number;
+  malicious: number;
+}
+
 export interface BackendReviewStats {
   totalCalls: number;
   statusCounts: Record<string, number>;
@@ -173,8 +297,10 @@ export interface BackendReviewStats {
   completedCount: number;
   gradeCounts: Record<string, number>;
   typeCounts: Record<string, number>;
+  categoryCounts: Record<string, number>;
   avgReviewSec: number | null;
-  hourlyThroughput: Record<string, number>;
+  /** 오늘자 시간대별 처리 건수를 등급으로 쪼갠 것. 시각 오름차순, 처리가 없던 시간대는 빠져 있다. */
+  hourlyThroughput: BackendHourlyGrade[];
   maliciousByCounselor: Record<string, number>;
   /** 판정 5종(유형·분류·등급·요약·후속필요) confidence 평균, 0~1. 판정이 하나도 없으면 null. */
   avgConfidence: number | null;

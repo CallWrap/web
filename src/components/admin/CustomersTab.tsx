@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { BackendCustomerCall, BackendCustomerDetail } from '../../api/backendTypes';
+import { getCustomerCalls, getCustomerDetail, getCustomers } from '../../api/api';
 import { CalendarIcon, SearchIcon, toISODate } from '../counselor/CounselorBits';
-import { GradeBars } from './Charts';
+import { GradeBars, MonthBars } from './Charts';
+import { NO_DATA } from '../../lib/format';
+import { CallDetailModal } from './CallDetailModal';
 
 /* ─────────────────────────────────────────────────────────────
    민원인 관리 (Figma 22 · 지침 5절).
@@ -29,9 +33,50 @@ export interface CustomerRow {
 export function CustomersTab() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<CustomerRow | null>(null);
+  const [rows, setRows] = useState<CustomerRow[]>([]);
+  const [detail, setDetail] = useState<BackendCustomerDetail | null>(null);
+  const [calls, setCalls] = useState<BackendCustomerCall[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [detailOf, setDetailOf] = useState<BackendCustomerCall | null>(null);
 
-  // 목록 API가 없다 — 지어내지 않고 빈 배열로 둔다.
-  const rows: CustomerRow[] = [];
+  async function load(nextQuery = query) {
+    setBusy(true);
+    try {
+      const response = await getCustomers(nextQuery);
+      const nextRows = response.items.map((item) => ({
+        ...item,
+        name: item.name ?? '',
+        phone: item.phone ?? '',
+        org: item.org ?? '',
+        lastCalledAt: item.lastCalledAt ?? '',
+      }));
+      setRows(nextRows);
+      setSelected((current) => nextRows.find((row) => row.id === current?.id) ?? nextRows[0] ?? null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load('');
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      setCalls([]);
+      return;
+    }
+    let alive = true;
+    Promise.all([getCustomerDetail(selected.id), getCustomerCalls(selected.id)]).then(([nextDetail, history]) => {
+      if (!alive) return;
+      setDetail(nextDetail);
+      setCalls(history.items);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [selected]);
 
   return (
     <div className="aw-body">
@@ -49,7 +94,7 @@ export function CustomersTab() {
             />
             <SearchIcon />
           </span>
-          <button className="cw-btn primary" style={{ width: 48, padding: 0 }}>조회</button>
+          <button className="cw-btn primary" style={{ width: 48, padding: 0 }} onClick={() => void load()} disabled={busy}>조회</button>
         </div>
 
         <div className="aw-thead" style={{ gridTemplateColumns: LIST_COLS }}>
@@ -63,7 +108,7 @@ export function CustomersTab() {
 
         <div className="aw-tbody">
           {rows.length === 0 ? (
-            <div className="aw-blank">민원인 조회 API가 없어 목록을 표시할 수 없습니다.</div>
+            <div className="aw-blank">{busy ? '민원인을 불러오는 중…' : '조건에 맞는 민원인이 없습니다.'}</div>
           ) : (
             rows.map((r) => (
               <button
@@ -77,7 +122,7 @@ export function CustomersTab() {
                 <span className="l">{r.org}</span>
                 <span>{r.totalCalls}</span>
                 <span>{r.maliciousCalls}</span>
-                <span>{r.lastCalledAt}</span>
+                <span>{r.lastCalledAt ? r.lastCalledAt.slice(5, 10) : NO_DATA}</span>
               </button>
             ))
           )}
@@ -95,19 +140,19 @@ export function CustomersTab() {
           <div className="aw-inforow">
             <div className="aw-infolabel" style={{ width: 78 }}>이름</div>
             <div className="aw-infoval" style={{ width: 120, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.name ? '' : 'cw-empty'}>{detail?.name || NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 88 }}>전화번호</div>
             <div className="aw-infoval" style={{ width: 150, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.phone ? '' : 'cw-empty'}>{detail?.phone || NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 78 }}>소속</div>
             <div className="aw-infoval" style={{ flex: 1 }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.org ? '' : 'cw-empty'}>{detail?.org || NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 88 }}>최초 상담</div>
             <div className="aw-infoval" style={{ width: 130, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.firstCalledAt ? '' : 'cw-empty'}>{detail?.firstCalledAt?.slice(0, 10) || NO_DATA}</span>
             </div>
           </div>
         </section>
@@ -119,8 +164,8 @@ export function CustomersTab() {
               <h2>등급별 이력</h2>
               <span className="cw-sub">누적</span>
             </div>
-            {selected ? (
-              <GradeBars counts={{ malicious: 0, normal: 0, praise: 0 }} />
+            {detail ? (
+              <GradeBars counts={detail.gradeCounts} />
             ) : (
               <div className="aw-blank">등급별 이력 집계가 없습니다.</div>
             )}
@@ -132,10 +177,23 @@ export function CustomersTab() {
               <h2>문의 추이</h2>
               <span className="cw-sub">최근 6개월</span>
             </div>
-            <div className="aw-blank">월별 문의 집계가 없습니다.</div>
+            {detail ? (
+              <MonthBars data={detail.monthlyCounts.map((point) => ({
+                label: point.month.slice(5),
+                total: point.total,
+                malicious: point.malicious,
+                praise: point.praise,
+              }))} />
+            ) : (
+              <div className="aw-blank">월별 문의 집계가 없습니다.</div>
+            )}
             <div className="aw-stateline">
               <span className="lb">응대 참고</span>
-              <span className="cw-empty">판정 기준 미정</span>
+              <span className={detail?.topSubcategories[0] ? '' : 'cw-empty'}>
+                {detail?.topSubcategories[0]
+                  ? `주요 문의 · ${detail.topSubcategories[0].label} ${detail.topSubcategories[0].count}건`
+                  : '주요 문의 정보 없음'}
+              </span>
             </div>
           </section>
         </div>
@@ -160,10 +218,31 @@ export function CustomersTab() {
             <span />
           </div>
           <div className="aw-tbody">
-            <div className="aw-blank">민원인별 상담 이력 조회 API가 없습니다.</div>
+            {calls.length === 0 ? (
+              <div className="aw-blank">상담 이력이 없습니다.</div>
+            ) : calls.map((call) => (
+              <div className="aw-row" style={{ gridTemplateColumns: HIST_COLS }} key={call.reviewId}>
+                <span className="aw-no">{`${call.calledAt.slice(0, 4)}-${`${call.callNo}`.padStart(4, '0')}`}</span>
+                <span>{call.calledAt.slice(5, 16).replace('T', ' ')}</span>
+                <span>{call.counselorName}</span>
+                <span>{call.grade ?? NO_DATA}</span>
+                <span className="l">{call.summary ?? ''}</span>
+                <span>{call.callDurationSec != null ? `${call.callDurationSec}초` : NO_DATA}</span>
+                <span><button className="cw-btn" style={{ width: 76, padding: 0 }} onClick={() => setDetailOf(call)}>상세 보기</button></span>
+              </div>
+            ))}
           </div>
         </section>
       </div>
+
+      {detailOf && (
+        <CallDetailModal
+          callId={detailOf.reviewId}
+          title={`${detailOf.calledAt.slice(0, 4)}-${`${detailOf.callNo}`.padStart(4, '0')}`}
+          subtitle={detailOf.calledAt.slice(11, 16)}
+          onClose={() => setDetailOf(null)}
+        />
+      )}
     </div>
   );
 }

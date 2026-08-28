@@ -95,6 +95,7 @@ export interface Call {
   confirmedAt?: string | null;
   editCount?: number; // 상담사 수정 건수 (재학습 데이터 축적 지표) — editedFields.length로 파생
   reviewSec?: number; // 검토 소요 시간(초) — 프론트에서만 재고, 백엔드에 저장 안 됨
+  counselor?: { id: string; name: string } | null;
   followupActions?: FollowupAction[];
   /** true면 목록 API에서 온 placeholder — fields/transcript는 여전히 비어있음 (grade/후속필요는 이제 실값) */
   isSummary?: boolean;

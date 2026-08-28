@@ -9,6 +9,7 @@ const STATUS_LABEL: Record<BackendFaqEntry['status'], string> = {
   DRAFT: '검수 대기',
   PUBLISHED: '게시됨',
   DISCARDED: '반려됨',
+  MERGED: '병합됨',
 };
 
 /** 근거 콜이 이 값 이상 누적된 FAQ는 "많이 문의된" 것으로 보고 배지로 추천 표시한다.

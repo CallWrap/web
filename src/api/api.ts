@@ -9,6 +9,14 @@ import type {
   BackendFollowupNote,
   BackendFaqBatchResult,
   BackendFaqEntry,
+  BackendFaqRevision,
+  BackendFaqSimilar,
+  BackendCustomerCallList,
+  BackendCustomerDetail,
+  BackendCustomerList,
+  BackendCounselorCallList,
+  BackendCounselorDetail,
+  BackendCounselorSummary,
   BackendReviewCreateResponse,
   BackendReviewDetail,
   BackendReviewListResponse,
@@ -16,6 +24,21 @@ import type {
 } from './backendTypes';
 import { toCall, toCallFromSummary } from './adapt';
 import type { Call, FieldKey, SaveCallPayload } from './types';
+
+async function getAllPages<T>(urlForPage: (page: number, size: number) => string): Promise<T[]> {
+  const pageSize = 500;
+  const items: T[] = [];
+  let page = 0;
+  let totalCount = 0;
+  do {
+    const response = await apiFetch<{ items: T[]; totalCount: number }>(urlForPage(page, pageSize));
+    items.push(...response.items);
+    totalCount = response.totalCount;
+    if (response.items.length === 0) break;
+    page += 1;
+  } while (items.length < totalCount);
+  return items;
+}
 
 /**
  * 대기열 조회. 목록 API가 상태/시각만 주므로 fields/grade/transcript는 placeholder다
@@ -30,6 +53,18 @@ export async function getQueue(range?: { from: string; to: string }): Promise<Ca
   }
   const res = await apiFetch<BackendReviewListResponse>(`/api/reviews?${qs}`);
   return res.items.map(toCallFromSummary);
+}
+
+export async function getAdminQueue(range?: { from: string; to: string }): Promise<Call[]> {
+  const summaries = await getAllPages<BackendReviewListResponse['items'][number]>((page, size) => {
+    const qs = new URLSearchParams({ all: 'true', page: String(page), size: String(size) });
+    if (range) {
+      qs.set('from', range.from);
+      qs.set('to', range.to);
+    }
+    return `/api/reviews?${qs}`;
+  });
+  return summaries.map(toCallFromSummary);
 }
 
 /**
@@ -128,4 +163,50 @@ export async function publishFaqEntry(id: string): Promise<BackendFaqEntry> {
 
 export async function discardFaqEntry(id: string): Promise<BackendFaqEntry> {
   return apiFetch<BackendFaqEntry>(`/api/faq-entries/${id}/discard`, { method: 'POST' });
+}
+
+export async function getFaqSimilar(id: string): Promise<BackendFaqSimilar[]> {
+  return apiFetch<BackendFaqSimilar[]>(`/api/faq-entries/${id}/similar`);
+}
+
+export async function mergeFaqEntry(draftId: string, targetId: string): Promise<BackendFaqEntry> {
+  return apiFetch<BackendFaqEntry>(`/api/faq-entries/${draftId}/merge-into/${targetId}`, { method: 'POST' });
+}
+
+export async function getFaqRevisions(id: string): Promise<BackendFaqRevision[]> {
+  return apiFetch<BackendFaqRevision[]>(`/api/faq-entries/${id}/revisions`);
+}
+
+export async function getCustomers(query = ''): Promise<BackendCustomerList> {
+  const items = await getAllPages<BackendCustomerList['items'][number]>((page, size) => {
+    const qs = new URLSearchParams({ query, page: String(page), size: String(size) });
+    return `/api/customers?${qs}`;
+  });
+  return { items, page: 0, size: items.length, totalCount: items.length };
+}
+
+export async function getCustomerDetail(id: string): Promise<BackendCustomerDetail> {
+  return apiFetch<BackendCustomerDetail>(`/api/customers/${id}`);
+}
+
+export async function getCustomerCalls(id: string): Promise<BackendCustomerCallList> {
+  const items = await getAllPages<BackendCustomerCallList['items'][number]>(
+    (page, size) => `/api/customers/${id}/calls?page=${page}&size=${size}`,
+  );
+  return { items, page: 0, size: items.length, totalCount: items.length };
+}
+
+export async function getCounselors(date: string): Promise<BackendCounselorSummary[]> {
+  return apiFetch<BackendCounselorSummary[]>(`/api/counselors?date=${encodeURIComponent(date)}`);
+}
+
+export async function getCounselorDetail(id: string, date: string): Promise<BackendCounselorDetail> {
+  return apiFetch<BackendCounselorDetail>(`/api/counselors/${id}?date=${encodeURIComponent(date)}`);
+}
+
+export async function getCounselorCalls(id: string, date: string): Promise<BackendCounselorCallList> {
+  const items = await getAllPages<BackendCounselorCallList['items'][number]>(
+    (page, size) => `/api/counselors/${id}/calls?date=${encodeURIComponent(date)}&page=${page}&size=${size}`,
+  );
+  return { items, page: 0, size: items.length, totalCount: items.length };
 }

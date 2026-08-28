@@ -84,7 +84,7 @@ function FilterSet({
 export function LedgerTab() {
   const calls = useCallStore((s) => s.calls);
   const loaded = useCallStore((s) => s.loaded);
-  const refreshQueue = useCallStore((s) => s.refreshQueue);
+  const refreshAdminQueue = useCallStore((s) => s.refreshAdminQueue);
 
   const [from, setFrom] = useState(monthStartISO);
   const [to, setTo] = useState(() => toISODate(new Date()));
@@ -94,11 +94,13 @@ export function LedgerTab() {
   const [query, setQuery] = useState('');
   const [detailOf, setDetailOf] = useState<Call | null>(null);
 
-  // 상담사 목록은 콜에서 뽑아야 하는데 목록 응답에 상담사 이름이 없다 — 지금은 전체만 고를 수 있다.
+  const counselorNames = [...new Set(calls
+    .map((c) => c.counselor?.name)
+    .filter((value): value is string => Boolean(value)))];
   const options: Record<keyof Filter, string[]> = {
     grade: [ALL, ...CONSULTATION_GRADES],
     type: [ALL, ...CONSULTATION_TYPES],
-    counselor: [ALL],
+    counselor: [ALL, ...counselorNames.sort((a, b) => a.localeCompare(b, 'ko'))],
     status: [ALL, ...PROGRESS_STEPS],
   };
 
@@ -108,6 +110,7 @@ export function LedgerTab() {
       if (filter.status !== ALL && progressOf(c.status) !== filter.status) return false;
       if (filter.grade !== ALL && gradeLabel[c.grade] !== filter.grade) return false;
       if (filter.type !== ALL && String(c.fields.type.value) !== filter.type) return false;
+      if (filter.counselor !== ALL && c.counselor?.name !== filter.counselor) return false;
       if (q) {
         const hay = [fmtCallSeq(c), c.complainant?.name ?? '', c.title ?? ''].join(' ');
         if (!hay.includes(q)) return false;
@@ -125,10 +128,10 @@ export function LedgerTab() {
         fmtTime(c.startedAt),
         c.complainant?.name ?? '',
         c.complainant?.org ?? '',
-        '', // 상담사 — 목록 응답에 없음
+        c.counselor?.name ?? '',
         classifyText(c),
         gradeLabel[c.grade],
-        '', // 검토시간 — 목록 응답에 없음
+        c.reviewSec ?? '',
         progressOf(c.status),
         c.title ?? '',
       ]),
@@ -226,7 +229,7 @@ export function LedgerTab() {
             </span>
 
             <div className="aw-fset">
-              <button className="cw-btn primary" style={{ width: 48, padding: 0 }} onClick={() => void refreshQueue({ from, to })}>
+              <button className="cw-btn primary" style={{ width: 48, padding: 0 }} onClick={() => void refreshAdminQueue({ from, to })}>
                 조회
               </button>
               <button className="cw-btn" style={{ width: 72, padding: 0 }} onClick={exportCsv} disabled={rows.length === 0}>
@@ -260,7 +263,7 @@ export function LedgerTab() {
           ) : rows.length === 0 ? (
             <div className="aw-blank">
               조건에 맞는 상담이 없습니다.
-              {calls.length === 0 && ' 관리자 계정은 목록 조회 API가 본인 배정 콜만 돌려주어 비어 있습니다.'}
+              {calls.length === 0 && ' 조회 기간에 등록된 상담이 없습니다.'}
             </div>
           ) : (
             rows.map((c) => (
@@ -269,13 +272,12 @@ export function LedgerTab() {
                 <span>{fmtTime(c.startedAt)}</span>
                 <span className={c.complainant?.name ? '' : 'cw-muted'}>{c.complainant?.name || NO_DATA}</span>
                 <span className={c.complainant?.org ? '' : 'cw-muted'}>{c.complainant?.org || NO_DATA}</span>
-                {/* 상담사·분류·검토시간은 목록 API 응답에 없다 */}
-                <span className="cw-muted">{NO_DATA}</span>
+                <span className={c.counselor?.name ? '' : 'cw-muted'}>{c.counselor?.name || NO_DATA}</span>
                 <span className={classifyText(c) ? '' : 'cw-muted'}>{classifyText(c) || NO_DATA}</span>
                 <span>
                   <span className={`cw-badge ${GRADE_CLASS[c.grade]}`}>{gradeLabel[c.grade]}</span>
                 </span>
-                <span className="cw-muted">{NO_DATA}</span>
+                <span className={c.reviewSec != null ? '' : 'cw-muted'}>{c.reviewSec != null ? `${c.reviewSec}초` : NO_DATA}</span>
                 <span><ProgressBadge value={progressOf(c.status)} /></span>
                 <span />
                 <span className="l">{c.title ?? ''}</span>

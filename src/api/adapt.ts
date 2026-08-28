@@ -24,21 +24,10 @@ import type {
   UtteranceSentiment,
 } from './types';
 
-const EMPTY_STRING_FIELD: FormFieldData<string> = { value: '', confidence: 0, tier: 'low', evidence: [] };
 const EMPTY_BOOL_FIELD: FormFieldData<boolean> = { value: false, confidence: 0, tier: 'low', evidence: [] };
 const EMPTY_SUMMARY: SummaryValue = { title: '', inquiry: '', resolution: '' };
 const EMPTY_SUMMARY_FIELD: FormFieldData<SummaryValue> = {
   value: EMPTY_SUMMARY, confidence: 0, tier: 'low', evidence: [],
-};
-
-const EMPTY_FIELDS: CallFields = {
-  type: EMPTY_STRING_FIELD,
-  category: EMPTY_STRING_FIELD,
-  subcategory: EMPTY_STRING_FIELD,
-  grade: EMPTY_STRING_FIELD,
-  summary: EMPTY_SUMMARY_FIELD,
-  followup: EMPTY_BOOL_FIELD,
-  faq: EMPTY_BOOL_FIELD,
 };
 
 /** confidence → tier 파생 (백엔드가 tier를 안 줄 때의 프론트 fallback) */
@@ -164,6 +153,21 @@ export function defaultFollowupActions(callId: string) {
  */
 export function toCallFromSummary(item: BackendReviewSummary): Call {
   const needsFollowup = Boolean(item.needsFollowup?.value);
+  const summaryField: FormFieldData<SummaryValue> = {
+    value: { ...EMPTY_SUMMARY, title: item.title ?? '' },
+    confidence: 0,
+    tier: 'low',
+    evidence: [],
+  };
+  const fields: CallFields = {
+    type: judgmentToStringField(item.classification?.type),
+    category: judgmentToStringField(item.classification?.category),
+    subcategory: judgmentToStringField(item.classification?.subcategory),
+    grade: judgmentToStringField(item.grade),
+    summary: summaryField,
+    followup: judgmentToBoolField(item.needsFollowup),
+    faq: EMPTY_BOOL_FIELD,
+  };
   return {
     callId: item.reviewId,
     callNo: item.callNo ?? null,
@@ -175,11 +179,13 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     audioUrl: null, // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
     transcript: [],
     utteranceSentiments: [],
-    fields: EMPTY_FIELDS,
+    fields,
     isSummary: true,
     confidenceSummary: { high: item.highConfidenceFieldCount, total: item.totalFieldCount },
     confirmedAt: item.confirmedAt ?? null,
     complainant: item.complainant ?? null,
+    counselor: item.counselor ?? null,
+    reviewSec: item.reviewSec ?? undefined,
     failures: [], // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
   };
 }

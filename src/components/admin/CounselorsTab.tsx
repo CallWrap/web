@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { BackendCounselorCall, BackendCounselorDetail } from '../../api/backendTypes';
+import { getCounselorCalls, getCounselorDetail, getCounselors } from '../../api/api';
 import { CalendarIcon, Caret, Menu, Popover, toISODate } from '../counselor/CounselorBits';
-import { GradeBars } from './Charts';
+import { GradeBars, SentimentBars } from './Charts';
+import { NO_DATA } from '../../lib/format';
 
 /* ─────────────────────────────────────────────────────────────
    상담사 관리 (Figma 21 · 지침 4절).
@@ -31,9 +34,50 @@ export function CounselorsTab() {
   const [stateFilter, setStateFilter] = useState('전체');
   const [statePop, setStatePop] = useState(false);
   const [selected, setSelected] = useState<CounselorRow | null>(null);
+  const [rows, setRows] = useState<CounselorRow[]>([]);
+  const [detail, setDetail] = useState<BackendCounselorDetail | null>(null);
+  const [calls, setCalls] = useState<BackendCounselorCall[]>([]);
+  const [date] = useState(() => toISODate(new Date()));
+  const [busy, setBusy] = useState(false);
 
-  // 목록 API가 없다 — 지어내지 않고 빈 배열로 둔다.
-  const rows: CounselorRow[] = [];
+  async function load(nextDate = date) {
+    setBusy(true);
+    try {
+      const response = await getCounselors(nextDate);
+      const nextRows = response.map((item) => ({ ...item, team: item.team ?? '' }));
+      setRows(nextRows);
+      setSelected((current) => nextRows.find((row) => row.id === current?.id) ?? nextRows[0] ?? null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load(date);
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      setCalls([]);
+      return;
+    }
+    let alive = true;
+    Promise.all([getCounselorDetail(selected.id, date), getCounselorCalls(selected.id, date)])
+      .then(([nextDetail, recentCalls]) => {
+        if (!alive) return;
+        setDetail(nextDetail);
+        setCalls(recentCalls.items);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selected, date]);
+
+  const visibleRows = useMemo(
+    () => stateFilter === '전체' ? rows : rows.filter((row) => row.state === stateFilter),
+    [rows, stateFilter],
+  );
 
   return (
     <div className="aw-body">
@@ -64,7 +108,7 @@ export function CounselorsTab() {
               )}
             </span>
           </div>
-          <button className="cw-btn primary" style={{ width: 48, padding: 0 }}>조회</button>
+          <button className="cw-btn primary" style={{ width: 48, padding: 0 }} onClick={() => void load()} disabled={busy}>조회</button>
         </div>
 
         <div className="aw-thead" style={{ gridTemplateColumns: LIST_COLS }}>
@@ -77,10 +121,10 @@ export function CounselorsTab() {
         </div>
 
         <div className="aw-tbody">
-          {rows.length === 0 ? (
-            <div className="aw-blank">상담사 집계 API가 없어 목록을 표시할 수 없습니다.</div>
+          {visibleRows.length === 0 ? (
+            <div className="aw-blank">{busy ? '상담사 현황을 불러오는 중…' : '조건에 맞는 상담사가 없습니다.'}</div>
           ) : (
-            rows.map((r) => (
+            visibleRows.map((r) => (
               <button
                 key={r.id}
                 className={`aw-row ${selected?.id === r.id ? 'sel' : ''}`}
@@ -115,19 +159,19 @@ export function CounselorsTab() {
           <div className="aw-inforow">
             <div className="aw-infolabel" style={{ width: 78 }}>이름</div>
             <div className="aw-infoval" style={{ width: 120, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.name ? '' : 'cw-empty'}>{detail?.name || NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 78 }}>소속</div>
             <div className="aw-infoval" style={{ flex: 1 }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail?.team ? '' : 'cw-empty'}>{detail?.team || NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 88 }}>오늘 처리</div>
             <div className="aw-infoval" style={{ width: 110, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail ? '' : 'cw-empty'}>{detail ? `${detail.totalCalls}건` : NO_DATA}</span>
             </div>
             <div className="aw-infolabel" style={{ width: 104 }}>총 통화 시간</div>
             <div className="aw-infoval" style={{ width: 140, flex: 'none' }}>
-              <span className="cw-empty">정보 없음</span>
+              <span className={detail ? '' : 'cw-empty'}>{detail ? `${Math.floor(detail.totalCallSec / 60)}분 ${detail.totalCallSec % 60}초` : NO_DATA}</span>
             </div>
           </div>
         </section>
@@ -139,8 +183,8 @@ export function CounselorsTab() {
               <h2>등급별 처리</h2>
               <span className="cw-sub">오늘</span>
             </div>
-            {selected ? (
-              <GradeBars counts={{ malicious: 0, normal: 0, praise: 0 }} />
+            {detail ? (
+              <GradeBars counts={detail.gradeCounts} />
             ) : (
               <div className="aw-blank">등급별 처리 집계가 없습니다.</div>
             )}
@@ -152,11 +196,22 @@ export function CounselorsTab() {
               <h2>발화 감정 분석</h2>
               <span className="cw-sub">최근 7일</span>
             </div>
-            {/* 발화별 감정은 저장되기 시작했지만 상담사·날짜로 묶은 집계 API가 아직 없다 */}
-            <div className="aw-blank">일자별 부정 발화 집계가 없습니다.</div>
+            {detail ? (
+              <SentimentBars data={detail.sentimentTrend.map((point) => ({
+                label: point.date.slice(5),
+                value: Math.round(point.negativeScore * 100),
+              }))} />
+            ) : (
+              <div className="aw-blank">일자별 부정 발화 집계가 없습니다.</div>
+            )}
             <div className="aw-stateline">
               <span className="lb">현재 상태</span>
-              <span className="cw-empty">판정 기준 미정</span>
+              {detail ? (
+                <>
+                  <span className={`cw-badge ${detail.state === '양호' ? 'good' : detail.state === '주의' ? 'warn' : 'rest'}`}>{detail.state}</span>
+                  <span>{detail.stateReason}</span>
+                </>
+              ) : <span className="cw-empty">상태 정보 없음</span>}
             </div>
           </section>
         </div>
@@ -167,7 +222,7 @@ export function CounselorsTab() {
             <h2>최근 담당 콜</h2>
             <span className="cw-rule" />
             <button className="cw-datebtn">
-              {toISODate(new Date())}
+              {date}
               <CalendarIcon />
             </button>
           </div>
@@ -182,7 +237,20 @@ export function CounselorsTab() {
             <span>부정 발화</span>
           </div>
           <div className="aw-tbody">
-            <div className="aw-blank">상담사별 담당 콜 조회 API가 없습니다.</div>
+            {calls.length === 0 ? (
+              <div className="aw-blank">선택일 담당 콜이 없습니다.</div>
+            ) : calls.map((call) => (
+              <div className="aw-row" style={{ gridTemplateColumns: CALL_COLS }} key={call.reviewId}>
+                <span className="aw-no">{`${call.calledAt.slice(0, 4)}-${`${call.callNo}`.padStart(4, '0')}`}</span>
+                <span>{call.calledAt.slice(11, 16)}</span>
+                <span>{call.customerName ?? NO_DATA}</span>
+                <span>{call.grade ?? NO_DATA}</span>
+                <span className="l">{call.summary ?? ''}</span>
+                <span>{call.callDurationSec != null ? `${call.callDurationSec}초` : NO_DATA}</span>
+                <span>{call.reviewSec != null ? `${call.reviewSec}초` : NO_DATA}</span>
+                <span>{Math.round(call.negativeScore * 100)}%</span>
+              </div>
+            ))}
           </div>
         </section>
       </div>

@@ -24,15 +24,15 @@ const EMPTY_COUNTERS: TopbarCounters = { '검토 대기': 0, '진행 중': 0, �
 export function AdminPage() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const loadQueue = useCallStore((s) => s.loadQueue);
+  const loadAdminQueue = useCallStore((s) => s.loadAdminQueue);
 
   const [stats, setStats] = useState<BackendReviewStats | null>(null);
 
   const active: AdminTab = isAdminTab(tab) ? tab : 'overview';
 
   useEffect(() => {
-    loadQueue();
-  }, [loadQueue]);
+    loadAdminQueue();
+  }, [loadAdminQueue]);
 
   // 상단바 카운터와 개요 탭이 같은 집계를 쓰므로 한 번만 받아 나눠 쓴다.
   // 관리자는 목록(useCallStore.calls)이 본인 배정 콜만 와서 비어 있으므로 집계 API가 유일한 출처다.
