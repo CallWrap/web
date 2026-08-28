@@ -20,6 +20,12 @@ export interface BackendUtterance {
   end: number;
 }
 
+export interface BackendUtteranceSentiment {
+  utteranceIndex: number;
+  speaker: BackendSpeaker;
+  score: number;
+}
+
 /**
  * GET /api/reviews 의 items[] 원소. 전사·필드 전체(type/category/summary 등)는 여전히 안 준다
  * (상세 전용) — 등급/후속필요/신뢰도 집계/통화시작시각까지는 목록에서 받는다.
@@ -90,6 +96,7 @@ export interface BackendReviewDetail {
   /** 짧게 살아있는 프리사인 GET URL. audioPath가 없거나 형식이 이상하면 null (재생 불가). */
   audioUrl: string | null;
   transcript: BackendUtterance[];
+  utteranceSentiments: BackendUtteranceSentiment[];
   failures: string[];
   confirmedAt: string | null;
   confirmedByCounselorId: string | null;

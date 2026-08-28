@@ -31,6 +31,12 @@ export interface Utterance {
   text: string;
 }
 
+export interface UtteranceSentiment {
+  utteranceId: string;
+  speaker: SpeakerRole;
+  score: number;
+}
+
 /**
  * 요약. AI-model의 `Summary`(title/inquiry/resolution) 계약 그대로다.
  * 세 값을 한 덩어리 문자열로 합쳐서 다루면 안 된다 — 확정(confirm) 시 그 문자열이
@@ -83,6 +89,8 @@ export interface Call {
   /** 녹음 재생용 프리사인 URL. 상세 조회에서만 채워짐 — 목록(placeholder)에는 없음(null). */
   audioUrl?: string | null;
   transcript: Utterance[]; // 백엔드 계약에 전사 필드가 아직 없어 항상 빈 배열
+  /** 상세 조회 전용 발화별 감정 점수. 상담사 점수는 관리자 화면에서만 렌더링한다. */
+  utteranceSentiments: UtteranceSentiment[];
   fields: CallFields;
   confirmedAt?: string | null;
   editCount?: number; // 상담사 수정 건수 (재학습 데이터 축적 지표) — editedFields.length로 파생

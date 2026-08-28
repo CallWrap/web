@@ -10,6 +10,7 @@ import type {
   BackendReviewSummary,
   BackendSpeaker,
   BackendUtterance,
+  BackendUtteranceSentiment,
 } from './backendTypes';
 import type {
   Call,
@@ -20,6 +21,7 @@ import type {
   FormFieldData,
   SpeakerRole,
   Utterance,
+  UtteranceSentiment,
 } from './types';
 
 const EMPTY_STRING_FIELD: FormFieldData<string> = { value: '', confidence: 0, tier: 'low', evidence: [] };
@@ -172,6 +174,7 @@ export function toCallFromSummary(item: BackendReviewSummary): Call {
     grade: mapGrade(item.grade),
     audioUrl: null, // 목록 API엔 안 옴 — 상세 조회에서만 채워짐
     transcript: [],
+    utteranceSentiments: [],
     fields: EMPTY_FIELDS,
     isSummary: true,
     confidenceSummary: { high: item.highConfidenceFieldCount, total: item.totalFieldCount },
@@ -188,6 +191,16 @@ export function toUtterance(u: BackendUtterance): Utterance {
     ts: u.start,
     text: u.text,
   };
+}
+
+export function toUtteranceSentiments(
+  sentiments: BackendUtteranceSentiment[] | null | undefined,
+): UtteranceSentiment[] {
+  return (sentiments ?? []).map((sentiment) => ({
+    utteranceId: `u${sentiment.utteranceIndex}`,
+    speaker: SPEAKER_MAP[sentiment.speaker] ?? 'agent',
+    score: sentiment.score,
+  }));
 }
 
 export function toCall(detail: BackendReviewDetail): Call {
@@ -212,6 +225,7 @@ export function toCall(detail: BackendReviewDetail): Call {
     grade: mapGrade(detail.classification?.grade),
     audioUrl: detail.audioUrl ?? null,
     transcript: (detail.transcript ?? []).map(toUtterance),
+    utteranceSentiments: toUtteranceSentiments(detail.utteranceSentiments),
     fields,
     failures: detail.failures ?? [],
     confirmedAt: detail.confirmedAt,

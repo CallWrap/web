@@ -30,11 +30,13 @@ const LEDGER_FIELDS: FieldKey[] = ['type', 'category', 'grade', 'summary', 'foll
 
 export function AdminPage() {
   const { calls, totalReviewSec } = useCallStore();
+  const fetchCall = useCallStore((state) => state.fetchCall);
   const navigate = useNavigate();
   const { tab: tabParam } = useParams<{ tab?: string }>();
   const tab: AdminTab = ADMIN_TABS.some((t) => t.key === tabParam) ? (tabParam as AdminTab) : 'overview';
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [ledgerDetails, setLedgerDetails] = useState<Record<string, Call>>({});
   // 개요 탭 차트 전환 — 유형 분포/악성콜 밸런싱/시간대별 처리량을 동시에 늘어놓지 않고
   // 한 번에 하나만 보여준다. 세 그래프가 한 화면에 다 있으면 뭘 봐야 할지 못 골랐다는
   // 피드백이 있었다(2026-08-25) — 차트 개수 자체를 줄여서 해결한다.
@@ -51,6 +53,16 @@ export function AdminPage() {
         // 집계 실패는 조용히 넘어간다 — 아래 fallback(calls 기준 계산)이 그대로 쓰인다.
       });
   }, []);
+
+  // 개요 카드의 드로어에서 바로 상담대장 행을 연 경우에도 상세 데이터를 선로딩한다.
+  useEffect(() => {
+    if (tab !== 'ledger' || !openId || ledgerDetails[openId]) return;
+    void fetchCall(openId).then((detail) => {
+      if (detail) {
+        setLedgerDetails((current) => ({ ...current, [openId]: detail }));
+      }
+    });
+  }, [fetchCall, ledgerDetails, openId, tab]);
 
   function gradeCountFrom(gradeCounts: Record<string, number>, webGrade: 'normal' | 'praise' | 'malicious') {
     return Object.entries(gradeCounts).reduce(
@@ -137,6 +149,14 @@ export function AdminPage() {
     setQuery(''); // 이전 검색어가 남아있으면 filteredCalls에서 이 콜이 걸러져 안 보일 수 있다
     setOpenId(callId);
     navigate('/admin/ledger');
+  }
+
+  function toggleLedgerDetail(callId: string) {
+    if (openId === callId) {
+      setOpenId(null);
+      return;
+    }
+    setOpenId(callId);
   }
 
   const filteredCalls = useMemo(() => {
@@ -498,11 +518,15 @@ export function AdminPage() {
               filteredCalls.map((c) => {
                 const tiers = LEDGER_FIELDS.map((k) => c.fields[k].tier);
                 const open = openId === c.callId;
+                const detail = ledgerDetails[c.callId];
+                const counselorSentiments = (detail?.utteranceSentiments ?? []).filter(
+                  (sentiment) => sentiment.speaker === 'agent',
+                );
                 return (
                   <div key={c.callId} className="ledger-item">
                     <button
                       className="ledger-row ledger-body"
-                      onClick={() => setOpenId(open ? null : c.callId)}
+                      onClick={() => toggleLedgerDetail(c.callId)}
                       aria-expanded={open}
                     >
                       <span className="cid">
@@ -536,6 +560,28 @@ export function AdminPage() {
                               </span>
                             </div>
                           ))}
+                        </div>
+                        <div className="counselor-sentiments">
+                          <div className="k">상담사 발화별 감정</div>
+                          {!detail ? (
+                            <span className="muted">불러오는 중…</span>
+                          ) : counselorSentiments.length === 0 ? (
+                            <span className="muted">분석 결과 없음</span>
+                          ) : (
+                            counselorSentiments.map((sentiment) => {
+                              const utterance = detail.transcript.find(
+                                (item) => item.id === sentiment.utteranceId,
+                              );
+                              return (
+                                <div key={sentiment.utteranceId} className="counselor-sentiment-row">
+                                  <span className="sentiment-score">
+                                    {sentiment.score > 0 ? '+' : ''}{sentiment.score.toFixed(2)}
+                                  </span>
+                                  <span>{utterance?.text ?? sentiment.utteranceId}</span>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                         <button className="btn ghost sm" onClick={() => navigate(`/review/${c.callId}`)}>
                           검토 화면 열기 →
